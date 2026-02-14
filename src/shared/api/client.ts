@@ -1,12 +1,24 @@
 /**
  * API client — HTTP calls to Express backend.
+ * Uses credentials: include for refresh cookies; optional Bearer token for auth.
  */
 
 import type { Trip, Day, TripEvent, Place, Booking, Suggestion } from "@/shared/types";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const base = (import.meta.env.VITE_API_BASE_URL || "http://localhost:4000").replace(/\/$/, "");
+const API_BASE_URL = base.includes("/api") ? base : `${base}/api`;
+
+/** Set by AuthProvider so authenticated requests include Bearer token. */
+let accessToken: string | null = null;
+let shareAccessToken: string | null = null;
+export function setApiAccessToken(token: string | null) {
+  accessToken = token;
+}
+export function setApiShareAccessToken(token: string | null) {
+  shareAccessToken = token;
+}
 
 // ─── Helper functions ───────────────────────────────────────────────────────
 
@@ -20,12 +32,18 @@ async function request<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  const token = accessToken || shareAccessToken;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const response = await fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
+    credentials: "include",
+    headers,
   });
 
   if (!response.ok) {
@@ -52,6 +70,16 @@ export const tripsApi = {
     request<Trip>("/trips", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+  createShareLink: (
+    tripId: string,
+    expiresInDays?: number
+  ): Promise<{ url: string }> =>
+    request<{ url: string }>(`/trips/${tripId}/share-links`, {
+      method: "POST",
+      body: JSON.stringify(
+        expiresInDays ? { expiresInDays } : {}
+      ),
     }),
 };
 
@@ -132,4 +160,51 @@ export const suggestionsApi = {
     const params = city ? `?city=${encodeURIComponent(city)}` : "";
     return request<Suggestion[]>(`/trips/${tripId}/suggestions${params}`);
   },
+};
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
+export interface RequestLinkResponse {
+  ok: boolean;
+  magicLink?: string; // dev only
+}
+
+export interface VerifyResponse {
+  accessToken: string;
+  user: AuthUser;
+}
+
+export interface RefreshResponse {
+  accessToken: string;
+  user?: AuthUser;
+}
+
+export interface ResolveShareResponse {
+  shareAccessToken: string;
+  tripId: string;
+  role: "viewer";
+}
+
+export const authApi = {
+  requestLink: (email: string): Promise<RequestLinkResponse> =>
+    request<RequestLinkResponse>("/auth/request-link", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  verify: (token: string): Promise<VerifyResponse> =>
+    request<VerifyResponse>(`/auth/verify?token=${encodeURIComponent(token)}`),
+  refresh: (): Promise<RefreshResponse> =>
+    request<RefreshResponse>("/auth/refresh", { method: "POST" }),
+  logout: (): Promise<{ ok: boolean }> =>
+    request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+};
+
+export const shareApi = {
+  resolve: (token: string): Promise<ResolveShareResponse> =>
+    request<ResolveShareResponse>(`/share/${encodeURIComponent(token)}`),
 };

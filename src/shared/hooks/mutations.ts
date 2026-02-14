@@ -1,6 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { eventsApi, placesApi, bookingsApi } from "@/shared/api/client";
-import type { TripEvent, Place, Booking } from "@/shared/types";
+import { tripsApi, eventsApi, placesApi, bookingsApi } from "@/shared/api/client";
+import type { Trip, TripEvent, Place, Booking } from "@/shared/types";
+
+// ─── Trips ───────────────────────────────────────────────────────────────────
+
+export function useCreateTrip() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Trip>) => tripsApi.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["trips"] });
+    },
+  });
+}
 
 // ─── Events ─────────────────────────────────────────────────────────────────
 

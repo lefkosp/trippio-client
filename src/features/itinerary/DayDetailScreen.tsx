@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDay, useEventsWithPlaces, useSuggestions } from "@/shared/hooks/queries";
 import { useCreateEvent } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
+import { useAuth } from "@/auth/useAuth";
+import { formatDate } from "@/lib/utils";
 import { EventCard } from "./components/EventCard";
 import { EventSheet } from "./components/EventSheet";
 import { AddEventSheet } from "./components/AddEventSheet";
@@ -22,10 +24,12 @@ function SuggestionCard({
   suggestion,
   onAdd,
   isAdding,
+  isReadOnly,
 }: {
   suggestion: Suggestion;
   onAdd: () => void;
   isAdding: boolean;
+  isReadOnly: boolean;
 }) {
   return (
     <div className="flex items-start gap-3 py-3 px-2">
@@ -43,16 +47,18 @@ function SuggestionCard({
           </span>
         )}
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-7 text-xs shrink-0 border-primary/30 text-primary hover:bg-primary/10 press-scale"
-        onClick={onAdd}
-        disabled={isAdding}
-      >
-        <Plus className="h-3 w-3 mr-1" />
-        Add
-      </Button>
+      {!isReadOnly && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs shrink-0 border-primary/30 text-primary hover:bg-primary/10 press-scale"
+          onClick={onAdd}
+          disabled={isAdding}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Add
+        </Button>
+      )}
     </div>
   );
 }
@@ -61,6 +67,7 @@ export function DayDetailScreen() {
   const { dayId } = useParams<{ dayId: string }>();
   const navigate = useNavigate();
   const { tripId } = useTripContext();
+  const { isReadOnly } = useAuth();
 
   const { data: day, isLoading: dayLoading } = useDay(dayId ?? "", tripId);
   const { data: events, isLoading: eventsLoading } = useEventsWithPlaces(dayId ?? "", tripId);
@@ -115,7 +122,7 @@ export function DayDetailScreen() {
     );
   }
 
-  const dateStr = new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+  const dateStr = formatDate(day.date, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -164,15 +171,17 @@ export function DayDetailScreen() {
             <PackageOpen className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">No events planned yet</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3 border-primary/30 text-primary hover:bg-primary/10"
-            onClick={() => setAddSheetOpen(true)}
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Add your first event
-          </Button>
+          {!isReadOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setAddSheetOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add your first event
+            </Button>
+          )}
         </div>
       )}
 
@@ -191,6 +200,7 @@ export function DayDetailScreen() {
                   suggestion={s}
                   onAdd={() => handleAddFromSuggestion(s)}
                   isAdding={addingSuggestionId === s._id}
+                  isReadOnly={isReadOnly}
                 />
               ))}
             </CardContent>
@@ -199,15 +209,17 @@ export function DayDetailScreen() {
       )}
 
       {/* Floating add button */}
-      <div className="fixed bottom-20 right-4 max-w-md">
-        <Button
-          size="lg"
-          className="rounded-full shadow-lg h-12 w-12 p-0 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-          onClick={() => setAddSheetOpen(true)}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="fixed bottom-20 right-4 max-w-md">
+          <Button
+            size="lg"
+            className="rounded-full shadow-lg h-12 w-12 p-0 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+            onClick={() => setAddSheetOpen(true)}
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Event detail sheet */}
       <EventSheet
@@ -218,11 +230,13 @@ export function DayDetailScreen() {
       />
 
       {/* Add event sheet */}
-      <AddEventSheet
-        dayId={dayId ?? ""}
-        open={addSheetOpen}
-        onOpenChange={setAddSheetOpen}
-      />
+      {!isReadOnly && (
+        <AddEventSheet
+          dayId={dayId ?? ""}
+          open={addSheetOpen}
+          onOpenChange={setAddSheetOpen}
+        />
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FilterChips, type FilterOption } from "@/components/ui/filter-chips";
 import { useDays } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
+import { formatDate } from "@/lib/utils";
 import type { Day } from "@/shared/types";
 
 const cityBadgeConfig: Record<string, { bgClass: string; fgClass: string }> = {
@@ -22,7 +23,7 @@ const cityFilterOptions: FilterOption[] = [
 
 function DayRow({ day }: { day: Day }) {
   const navigate = useNavigate();
-  const dateStr = new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+  const dateStr = formatDate(day.date, {
     weekday: "short",
     month: "short",
     day: "numeric",

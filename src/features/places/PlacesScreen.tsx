@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { usePlaces } from "@/shared/hooks/queries";
 import { useCreatePlace } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
+import { useAuth } from "@/auth/useAuth";
 import type { Place } from "@/shared/types";
 
 const tagConfig: Record<string, { bgClass: string; fgClass: string }> = {
@@ -370,6 +371,7 @@ function AddPlaceSheet({
 
 export function PlacesScreen() {
   const { tripId } = useTripContext();
+  const { isReadOnly } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const { data: places, isLoading } = usePlaces(
@@ -393,14 +395,16 @@ export function PlacesScreen() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-page-title">Places</h1>
-        <Button
-          size="sm"
-          className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add Place
-        </Button>
+        {!isReadOnly && (
+          <Button
+            size="sm"
+            className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Place
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -451,7 +455,7 @@ export function PlacesScreen() {
               ? "No places match your filters"
               : "No places saved yet"}
           </p>
-          {!searchQuery && !activeTag && (
+          {!searchQuery && !activeTag && !isReadOnly && (
             <Button
               variant="outline"
               size="sm"
@@ -465,7 +469,7 @@ export function PlacesScreen() {
         </div>
       )}
 
-      <AddPlaceSheet open={addOpen} onOpenChange={setAddOpen} />
+      {!isReadOnly && <AddPlaceSheet open={addOpen} onOpenChange={setAddOpen} />}
       <PlaceDetailSheet
         place={selectedPlace}
         open={detailOpen}

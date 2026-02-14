@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { formatDate } from "@/lib/utils";
 import { FilterChips, type FilterOption } from "@/components/ui/filter-chips";
 import {
   Sheet,
@@ -33,6 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { useBookings } from "@/shared/hooks/queries";
 import { useCreateBooking, useDeleteBooking } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
+import { useAuth } from "@/auth/useAuth";
 import { cn } from "@/lib/utils";
 import type { Booking, BookingType } from "@/shared/types";
 import type { LucideIcon } from "lucide-react";
@@ -101,13 +103,11 @@ function BookingCard({
   const config = bookingTypeConfig[booking.type] ?? bookingTypeConfig.other;
   const Icon = config.icon;
 
-  const dateStr = booking.date
-    ? new Date(booking.date + "T00:00:00").toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      })
-    : null;
+  const dateStr = formatDate(booking.date, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }) || null;
 
   return (
     <Card className="press-scale cursor-pointer" onClick={onClick}>
@@ -203,19 +203,18 @@ function BookingDetailSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const { tripId } = useTripContext();
+  const { isReadOnly } = useAuth();
   const deleteMutation = useDeleteBooking(tripId);
 
   if (!booking) return null;
   const config = bookingTypeConfig[booking.type] ?? bookingTypeConfig.other;
   const Icon = config.icon;
 
-  const dateStr = booking.date
-    ? new Date(booking.date + "T00:00:00").toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })
-    : null;
+  const dateStr = formatDate(booking.date, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }) || null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -305,21 +304,25 @@ function BookingDetailSheet({
             </>
           )}
 
-          <Separator className="bg-border" />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-xs text-danger-foreground hover:bg-danger/20"
-            onClick={() => {
-              deleteMutation.mutate(booking._id, {
-                onSuccess: () => onOpenChange(false),
-              });
-            }}
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-            {deleteMutation.isPending ? "Deleting..." : "Delete Booking"}
-          </Button>
+          {!isReadOnly && (
+            <>
+              <Separator className="bg-border" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-danger-foreground hover:bg-danger/20"
+                onClick={() => {
+                  deleteMutation.mutate(booking._id, {
+                    onSuccess: () => onOpenChange(false),
+                  });
+                }}
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                {deleteMutation.isPending ? "Deleting..." : "Delete Booking"}
+              </Button>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
@@ -526,6 +529,7 @@ function AddBookingSheet({
 
 export function BookingsScreen() {
   const { tripId } = useTripContext();
+  const { isReadOnly } = useAuth();
   const { data: bookings, isLoading } = useBookings(tripId);
   const [activeType, setActiveType] = useState<string | null>(null);
 
@@ -544,14 +548,16 @@ export function BookingsScreen() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-page-title">Bookings</h1>
-        <Button
-          size="sm"
-          className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add
-        </Button>
+        {!isReadOnly && (
+          <Button
+            size="sm"
+            className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        )}
       </div>
 
       {/* Type filter */}
@@ -589,7 +595,7 @@ export function BookingsScreen() {
           <p className="text-sm text-muted-foreground">
             {activeType ? "No bookings match this filter" : "No bookings yet"}
           </p>
-          {!activeType && (
+          {!activeType && !isReadOnly && (
             <Button
               variant="outline"
               size="sm"
@@ -603,7 +609,7 @@ export function BookingsScreen() {
         </div>
       )}
 
-      <AddBookingSheet open={addOpen} onOpenChange={setAddOpen} />
+      {!isReadOnly && <AddBookingSheet open={addOpen} onOpenChange={setAddOpen} />}
       <BookingDetailSheet
         booking={selectedBooking}
         open={detailOpen}

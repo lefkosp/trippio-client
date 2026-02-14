@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { eventTypeConfig, eventStatusConfig } from "@/shared/utils/event-helpers";
 import { useUpdateEvent, useDeleteEvent } from "@/shared/hooks/mutations";
 import type { TripEvent, EventStatus } from "@/shared/types";
+import { useAuth } from "@/auth/useAuth";
 
 interface EventSheetProps {
   event: TripEvent | null;
@@ -30,6 +31,7 @@ interface EventSheetProps {
 }
 
 export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps) {
+  const { isReadOnly } = useAuth();
   const updateEvent = useUpdateEvent(dayId);
   const deleteEvent = useDeleteEvent(dayId);
 
@@ -72,45 +74,49 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
         </SheetHeader>
 
         <div className="space-y-4 pt-2 px-4 pb-6">
-          {/* Status actions */}
-          <div className="flex gap-2">
-            {event.status !== "done" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs border-success/30 text-success-foreground hover:bg-success/20 press-scale"
-                onClick={() => handleStatusChange("done")}
-                disabled={updateEvent.isPending}
-              >
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Mark Done
-              </Button>
-            )}
-            {event.status !== "skipped" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs border-border text-muted-foreground hover:bg-elev-2 press-scale"
-                onClick={() => handleStatusChange("skipped")}
-                disabled={updateEvent.isPending}
-              >
-                <SkipForward className="h-3.5 w-3.5 mr-1" />
-                Skip
-              </Button>
-            )}
-            {event.status !== "planned" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs border-border text-muted-foreground hover:bg-elev-2 press-scale"
-                onClick={() => handleStatusChange("planned")}
-                disabled={updateEvent.isPending}
-              >
-                <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                Reset
-              </Button>
-            )}
-          </div>
+          {!isReadOnly && (
+            <>
+              {/* Status actions */}
+              <div className="flex gap-2">
+                {event.status !== "done" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs border-success/30 text-success-foreground hover:bg-success/20 press-scale"
+                    onClick={() => handleStatusChange("done")}
+                    disabled={updateEvent.isPending}
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Mark Done
+                  </Button>
+                )}
+                {event.status !== "skipped" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs border-border text-muted-foreground hover:bg-elev-2 press-scale"
+                    onClick={() => handleStatusChange("skipped")}
+                    disabled={updateEvent.isPending}
+                  >
+                    <SkipForward className="h-3.5 w-3.5 mr-1" />
+                    Skip
+                  </Button>
+                )}
+                {event.status !== "planned" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs border-border text-muted-foreground hover:bg-elev-2 press-scale"
+                    onClick={() => handleStatusChange("planned")}
+                    disabled={updateEvent.isPending}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Time */}
           {event.startTime && (
@@ -254,18 +260,22 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
             </>
           )}
 
-          {/* Delete */}
-          <Separator className="bg-border" />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-xs text-danger-foreground hover:bg-danger/20"
-            onClick={handleDelete}
-            disabled={deleteEvent.isPending}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-            {deleteEvent.isPending ? "Deleting..." : "Delete Event"}
-          </Button>
+          {!isReadOnly && (
+            <>
+              {/* Delete */}
+              <Separator className="bg-border" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-danger-foreground hover:bg-danger/20"
+                onClick={handleDelete}
+                disabled={deleteEvent.isPending}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                {deleteEvent.isPending ? "Deleting..." : "Delete Event"}
+              </Button>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

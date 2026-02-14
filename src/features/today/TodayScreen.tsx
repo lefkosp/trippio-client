@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTodayData } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { eventTypeConfig } from "@/shared/utils/event-helpers";
+import { formatDate } from "@/lib/utils";
 import type { TripEvent } from "@/shared/types";
 
 function NextUpCard({ event }: { event: TripEvent }) {
@@ -174,7 +175,7 @@ export function TodayScreen() {
           Day {day.dayNumber} — {day.city}
         </h1>
         <p className="text-caption">
-          {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+          {formatDate(day.date, {
             weekday: "long",
             month: "long",
             day: "numeric",

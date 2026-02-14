@@ -9,6 +9,9 @@ import {
   bookingsApi,
   suggestionsApi,
 } from "@/shared/api/client";
+import * as mockStore from "@/shared/api/mock-store";
+
+const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -20,17 +23,28 @@ function hasTransitContent(t?: Record<string, unknown>): boolean {
 
 // ─── Trips ───────────────────────────────────────────────────────────────────
 
-export function useTrips() {
+export function useTrips(enabled = true) {
   return useQuery<Trip[]>({
-    queryKey: ["trips"],
-    queryFn: tripsApi.list,
+    queryKey: ["trips", useMocks],
+    queryFn: () =>
+      useMocks
+        ? Promise.resolve(mockStore.listTrips())
+        : tripsApi.list(),
+    enabled,
   });
 }
 
 export function useTrip(tripId: string) {
   return useQuery<Trip>({
-    queryKey: ["trip", tripId],
-    queryFn: () => tripsApi.get(tripId),
+    queryKey: ["trip", tripId, useMocks],
+    queryFn: () => {
+      if (useMocks) {
+        const t = mockStore.getTrip(tripId);
+        if (!t) throw new Error("Trip not found");
+        return Promise.resolve(t);
+      }
+      return tripsApi.get(tripId);
+    },
     enabled: !!tripId,
   });
 }
