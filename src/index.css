@@ -1,0 +1,339 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   TRIPPIO — "Night Metro Travel OS" Design System
+   Dark-mode-first. Single source of truth for all design tokens.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* shadcn color bindings */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* custom brand tokens exposed to Tailwind */
+  --color-accent-muted: var(--accent-muted);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* city badge tokens */
+  --color-city-tokyo: var(--city-tokyo);
+  --color-city-tokyo-foreground: var(--city-tokyo-foreground);
+  --color-city-kyoto: var(--city-kyoto);
+  --color-city-kyoto-foreground: var(--city-kyoto-foreground);
+  --color-city-osaka: var(--city-osaka);
+  --color-city-osaka-foreground: var(--city-osaka-foreground);
+
+  /* event type tokens */
+  --color-event-sight: var(--event-sight);
+  --color-event-sight-foreground: var(--event-sight-foreground);
+  --color-event-food: var(--event-food);
+  --color-event-food-foreground: var(--event-food-foreground);
+  --color-event-transport: var(--event-transport);
+  --color-event-transport-foreground: var(--event-transport-foreground);
+  --color-event-hotel: var(--event-hotel);
+  --color-event-hotel-foreground: var(--event-hotel-foreground);
+  --color-event-free: var(--event-free);
+  --color-event-free-foreground: var(--event-free-foreground);
+
+  /* booking type tokens */
+  --color-booking-flight: var(--booking-flight);
+  --color-booking-flight-foreground: var(--booking-flight-foreground);
+  --color-booking-hotel: var(--booking-hotel);
+  --color-booking-hotel-foreground: var(--booking-hotel-foreground);
+  --color-booking-train: var(--booking-train);
+  --color-booking-train-foreground: var(--booking-train-foreground);
+  --color-booking-activity: var(--booking-activity);
+  --color-booking-activity-foreground: var(--booking-activity-foreground);
+  --color-booking-other: var(--booking-other);
+  --color-booking-other-foreground: var(--booking-other-foreground);
+
+  /* elevation */
+  --color-elev-1: var(--bg-elev-1);
+  --color-elev-2: var(--bg-elev-2);
+}
+
+/* ─── Dark-mode-first palette (default) ───────────────────────────────────── */
+
+:root {
+  --radius: 0.75rem;
+
+  /* Backgrounds */
+  --bg: #0b0e14;
+  --bg-elev-1: #12161f;
+  --bg-elev-2: #1a1f2b;
+
+  /* Text hierarchy */
+  --text: #e8ecf1;
+  --text-muted: #8b95a5;
+  --text-subtle: #5a6577;
+
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Accent — Teal/Cyan */
+  --accent-raw: #2dd4bf;
+  --accent-muted: rgba(45, 212, 191, 0.12);
+
+  /* Semantic */
+  --success: rgba(52, 211, 153, 0.12);
+  --success-foreground: #34d399;
+  --warning: rgba(251, 191, 36, 0.12);
+  --warning-foreground: #fbbf24;
+  --danger: rgba(248, 113, 113, 0.12);
+  --danger-foreground: #f87171;
+  --info: rgba(96, 165, 250, 0.12);
+  --info-foreground: #60a5fa;
+
+  /* City badges — cool tonal family */
+  --city-tokyo: rgba(96, 165, 250, 0.14);
+  --city-tokyo-foreground: #7cb3fc;
+  --city-kyoto: rgba(248, 113, 165, 0.14);
+  --city-kyoto-foreground: #f472b6;
+  --city-osaka: rgba(251, 191, 36, 0.14);
+  --city-osaka-foreground: #fbbf24;
+
+  /* Event type tokens */
+  --event-sight: rgba(96, 165, 250, 0.12);
+  --event-sight-foreground: #60a5fa;
+  --event-food: rgba(251, 146, 60, 0.12);
+  --event-food-foreground: #fb923c;
+  --event-transport: rgba(52, 211, 153, 0.12);
+  --event-transport-foreground: #34d399;
+  --event-hotel: rgba(192, 132, 252, 0.12);
+  --event-hotel-foreground: #c084fc;
+  --event-free: rgba(148, 163, 184, 0.12);
+  --event-free-foreground: #94a3b8;
+
+  /* Booking type tokens */
+  --booking-flight: rgba(96, 165, 250, 0.12);
+  --booking-flight-foreground: #60a5fa;
+  --booking-hotel: rgba(192, 132, 252, 0.12);
+  --booking-hotel-foreground: #c084fc;
+  --booking-train: rgba(52, 211, 153, 0.12);
+  --booking-train-foreground: #34d399;
+  --booking-activity: rgba(251, 191, 36, 0.12);
+  --booking-activity-foreground: #fbbf24;
+  --booking-other: rgba(148, 163, 184, 0.12);
+  --booking-other-foreground: #94a3b8;
+
+  /* ─── shadcn token mapping ─── */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--bg-elev-1);
+  --card-foreground: var(--text);
+  --popover: var(--bg-elev-2);
+  --popover-foreground: var(--text);
+  --primary: var(--accent-raw);
+  --primary-foreground: #0b0e14;
+  --secondary: var(--bg-elev-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--bg-elev-2);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--accent-muted);
+  --accent-foreground: var(--accent-raw);
+  --destructive: #ef4444;
+  --border: var(--border-color);
+  --input: var(--border-strong);
+  --ring: var(--accent-raw);
+
+  /* Chart tokens */
+  --chart-1: #2dd4bf;
+  --chart-2: #60a5fa;
+  --chart-3: #c084fc;
+  --chart-4: #fb923c;
+  --chart-5: #f472b6;
+
+  /* Sidebar */
+  --sidebar: var(--bg-elev-1);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--accent-raw);
+  --sidebar-primary-foreground: #0b0e14;
+  --sidebar-accent: var(--bg-elev-2);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--border-color);
+  --sidebar-ring: var(--accent-raw);
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: dark;
+    /* Safe area for iOS */
+    padding-top: env(safe-area-inset-top);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+  }
+
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ─── Typography utilities ─────────────────────────────────────────────────── */
+
+@layer utilities {
+  .text-page-title {
+    @apply text-2xl font-bold tracking-tight;
+    letter-spacing: -0.02em;
+  }
+
+  .text-section-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .text-body {
+    @apply text-sm leading-relaxed;
+    color: var(--text);
+  }
+
+  .text-caption {
+    @apply text-xs;
+    color: var(--text-muted);
+  }
+
+  /* Trippio wordmark */
+  .trippio-wordmark {
+    @apply text-base font-bold tracking-wide;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  /* Interaction states */
+  .press-scale {
+    @apply transition-transform duration-100 active:scale-[0.98];
+  }
+
+  .hover-lift {
+    @apply transition-all duration-150;
+  }
+  .hover-lift:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  .hover-lift:active {
+    background-color: rgba(255, 255, 255, 0.05);
+    transform: scale(0.98);
+  }
+
+  /* Card elevation */
+  .card-elevated {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+
+  .card-hero {
+    background: linear-gradient(135deg, var(--bg-elev-1) 0%, var(--bg-elev-2) 100%);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(45, 212, 191, 0.06);
+  }
+
+  /* Badge base */
+  .badge-subtle {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium;
+  }
+
+  /* Monospace pill for confirmation codes */
+  .mono-pill {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-mono font-medium;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-color);
+    color: var(--text);
+  }
+
+  /* Safe area */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Glass effect */
+  .glass {
+    background: rgba(11, 14, 20, 0.82);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+}
