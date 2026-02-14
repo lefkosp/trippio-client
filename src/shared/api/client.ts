@@ -1,87 +1,135 @@
 /**
- * API client — currently backed by the local mock store.
- *
- * When the Express backend is ready, replace each function body with the
- * commented-out HTTP `request()` call. The function signatures stay the same
- * so hooks / mutations don't need any changes.
+ * API client — HTTP calls to Express backend.
  */
 
 import type { Trip, Day, TripEvent, Place, Booking, Suggestion } from "@/shared/types";
-import * as store from "./mock-store";
 
-// ─── Async wrapper (keeps the Promise<T> contract) ──────────────────────────
+// ─── Configuration ──────────────────────────────────────────────────────────
 
-function resolve<T>(fn: () => T): Promise<T> {
-  return new Promise((res) => setTimeout(() => res(fn()), 40));
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+
+// ─── Helper functions ───────────────────────────────────────────────────────
+
+interface ApiResponse<T> {
+  data: T;
+  error: null | { message: string; code?: string };
+}
+
+async function request<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      error: { message: `HTTP ${response.status}: ${response.statusText}` },
+    }));
+    throw new Error(errorData.error?.message || `Request failed: ${response.statusText}`);
+  }
+
+  const result: ApiResponse<T> = await response.json();
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  return result.data;
 }
 
 // ─── Trips ──────────────────────────────────────────────────────────────────
 
 export const tripsApi = {
-  list: (): Promise<Trip[]> => resolve(() => store.listTrips()),
-  get: (tripId: string): Promise<Trip> =>
-    resolve(() => {
-      const trip = store.getTrip(tripId);
-      if (!trip) throw new Error("Trip not found");
-      return trip;
+  list: (): Promise<Trip[]> => request<Trip[]>("/trips"),
+  get: (tripId: string): Promise<Trip> => request<Trip>(`/trips/${tripId}`),
+  create: (data: Partial<Trip>): Promise<Trip> =>
+    request<Trip>("/trips", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
-  create: (_data: Partial<Trip>): Promise<Trip> =>
-    Promise.reject(new Error("Not implemented in mock")),
 };
 
 // ─── Days ───────────────────────────────────────────────────────────────────
 
 export const daysApi = {
   list: (tripId: string): Promise<Omit<Day, "dayNumber">[]> =>
-    resolve(() => store.listDays(tripId)),
+    request<Omit<Day, "dayNumber">[]>(`/trips/${tripId}/days`),
   get: (dayId: string): Promise<Omit<Day, "dayNumber">> =>
-    resolve(() => {
-      const day = store.getDay(dayId);
-      if (!day) throw new Error("Day not found");
-      return day;
-    }),
+    request<Omit<Day, "dayNumber">>(`/days/${dayId}`),
 };
 
 // ─── Events ─────────────────────────────────────────────────────────────────
 
 export const eventsApi = {
   list: (dayId: string): Promise<TripEvent[]> =>
-    resolve(() => store.listEvents(dayId) as TripEvent[]),
+    request<TripEvent[]>(`/days/${dayId}/events`),
   create: (dayId: string, data: Partial<TripEvent>): Promise<TripEvent> =>
-    resolve(() => store.createEvent(dayId, data) as TripEvent),
+    request<TripEvent>(`/days/${dayId}/events`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   update: (eventId: string, data: Partial<TripEvent>): Promise<TripEvent> =>
-    resolve(() => store.updateEvent(eventId, data) as TripEvent),
+    request<TripEvent>(`/events/${eventId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (eventId: string): Promise<void> =>
-    resolve(() => store.deleteEvent(eventId)),
+    request<void>(`/events/${eventId}`, {
+      method: "DELETE",
+    }),
 };
 
 // ─── Places ─────────────────────────────────────────────────────────────────
 
 export const placesApi = {
-  list: (tripId: string, query?: string): Promise<Place[]> =>
-    resolve(() => store.listPlaces(tripId, query)),
+  list: (tripId: string, query?: string): Promise<Place[]> => {
+    const params = query ? `?query=${encodeURIComponent(query)}` : "";
+    return request<Place[]>(`/trips/${tripId}/places${params}`);
+  },
   create: (tripId: string, data: Partial<Place>): Promise<Place> =>
-    resolve(() => store.createPlace(tripId, data)),
+    request<Place>(`/trips/${tripId}/places`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   update: (placeId: string, data: Partial<Place>): Promise<Place> =>
-    resolve(() => store.updatePlace(placeId, data)),
+    request<Place>(`/places/${placeId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ─── Bookings ───────────────────────────────────────────────────────────────
 
 export const bookingsApi = {
   list: (tripId: string): Promise<Booking[]> =>
-    resolve(() => store.listBookings(tripId)),
+    request<Booking[]>(`/trips/${tripId}/bookings`),
   create: (tripId: string, data: Partial<Booking>): Promise<Booking> =>
-    resolve(() => store.createBooking(tripId, data)),
+    request<Booking>(`/trips/${tripId}/bookings`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   update: (bookingId: string, data: Partial<Booking>): Promise<Booking> =>
-    resolve(() => store.updateBooking(bookingId, data)),
+    request<Booking>(`/bookings/${bookingId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (bookingId: string): Promise<void> =>
-    resolve(() => store.deleteBooking(bookingId)),
+    request<void>(`/bookings/${bookingId}`, {
+      method: "DELETE",
+    }),
 };
 
 // ─── Suggestions ────────────────────────────────────────────────────────────
 
 export const suggestionsApi = {
-  list: (tripId: string, city?: string): Promise<Suggestion[]> =>
-    resolve(() => store.listSuggestions(tripId, city)),
+  list: (tripId: string, city?: string): Promise<Suggestion[]> => {
+    const params = city ? `?city=${encodeURIComponent(city)}` : "";
+    return request<Suggestion[]>(`/trips/${tripId}/suggestions${params}`);
+  },
 };
