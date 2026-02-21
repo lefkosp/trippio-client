@@ -6,34 +6,37 @@ import { useAuth } from "@/auth/useAuth";
 export function ShareOpenScreen() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { setShareSession, clearShareSession } = useAuth();
+  const { user, isLoading, setShareSession, clearShareSession } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || isLoading) return;
 
     let cancelled = false;
     (async () => {
       try {
         const result = await shareApi.resolve(token);
         if (cancelled) return;
-
         if (result.role === "viewer") {
           setShareSession({
             tripId: result.tripId,
             role: result.role,
-            token: result.shareAccessToken!,
+            token: result.shareAccessToken,
           });
           navigate("/today", { replace: true });
-        } else if (result.role === "editor") {
-          if (result.requiresAuth) {
-            navigate(`/login?next=/share/${encodeURIComponent(token)}`, { replace: true });
-          } else if (result.claimed) {
-            navigate("/today", { replace: true });
-          } else {
-            setErrorMessage("Failed to claim editor link.");
-          }
+          return;
         }
+
+        clearShareSession();
+        if ("requiresAuth" in result && result.requiresAuth) {
+          navigate(`/login?next=${encodeURIComponent(`/share/${token}`)}`, { replace: true });
+          return;
+        }
+        if ("claimed" in result && result.claimed) {
+          navigate("/today", { replace: true });
+          return;
+        }
+        setErrorMessage("Could not claim editor access.");
       } catch (err) {
         if (cancelled) return;
         clearShareSession();
@@ -49,7 +52,7 @@ export function ShareOpenScreen() {
     return () => {
       cancelled = true;
     };
-  }, [token, setShareSession, clearShareSession, navigate]);
+  }, [token, isLoading, user, setShareSession, clearShareSession, navigate]);
 
   if (!token || errorMessage) {
     return (

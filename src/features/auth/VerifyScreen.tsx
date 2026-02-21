@@ -11,6 +11,7 @@ export function VerifyScreen() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const token = searchParams.get("token");
+  const nextFromQuery = searchParams.get("next");
 
   useEffect(() => {
     if (!token) {
@@ -23,13 +24,18 @@ export function VerifyScreen() {
         const res = await authApi.verify(token);
         setSession(res.user, res.accessToken);
         setStatus("ok");
-        navigate("/today", { replace: true });
+        const storedNext = sessionStorage.getItem("postLoginNext");
+        if (storedNext) {
+          sessionStorage.removeItem("postLoginNext");
+        }
+        const next = nextFromQuery || storedNext || "/today";
+        navigate(next, { replace: true });
       } catch (err) {
         setStatus("error");
         setErrorMessage(err instanceof Error ? err.message : "Invalid or expired link");
       }
     })();
-  }, [token, setSession, navigate]);
+  }, [token, nextFromQuery, setSession, navigate]);
 
   if (status === "verifying") {
     return (

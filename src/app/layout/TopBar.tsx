@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Check, LogOut, Users } from "lucide-react";
+import { ChevronDown, Check, Copy, Link, LogOut, Share2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -11,7 +11,8 @@ import {
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useTripSwitcher } from "@/shared/context/TripSwitcherContext";
 import { useAuth } from "@/auth/useAuth";
-import { AccessManagementSheet } from "@/features/share/AccessManagementSheet";
+import { tripsApi } from "@/shared/api/client";
+import { toast } from "sonner";
 
 export function TopBar() {
   const navigate = useNavigate();
@@ -20,13 +21,71 @@ export function TopBar() {
   const { logout, user, isReadOnly } = useAuth();
   const [shareOpen, setShareOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [isLoadingShareLink, setIsLoadingShareLink] = useState(false);
+  const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer");
 
   async function handleLogout() {
     await logout();
     navigate("/login", { replace: true });
   }
 
-  const isOwner = user && trip.createdBy === user.id;
+  async function openShareSheet() {
+    setShareOpen(true);
+    setShareUrl("");
+    setCopied(false);
+    setShareRole("viewer");
+  }
+
+  async function createShareLink(role: "viewer" | "editor") {
+    setShareRole(role);
+    setIsLoadingShareLink(true);
+    try {
+      const { url } = await tripsApi.createShareLink(trip._id, role);
+      setShareUrl(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not create share link");
+    } finally {
+      setIsLoadingShareLink(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      toast.success("Link copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement("input");
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      toast.success("Link copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleNativeShare() {
+    if (!shareUrl) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: trip.name,
+          text: `Check out my trip plan: ${trip.name}`,
+          url: shareUrl,
+        });
+      } catch {
+        // User cancelled — ignore
+      }
+    }
+  }
 
   return (
     <>
@@ -55,17 +114,15 @@ export function TopBar() {
           <div className="flex items-center gap-1">
             {user && (
               <>
-                {isOwner && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShareOpen(true)}
-                    title="Sharing & Access"
-                  >
-                    <Users className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  onClick={openShareSheet}
+                  title="Share trip"
+                >
+                  <Users className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -120,10 +177,84 @@ export function TopBar() {
         </SheetContent>
       </Sheet>
 
-      {/* Sharing & Access Sheet */}
-      {isOwner && (
-        <AccessManagementSheet open={shareOpen} onOpenChange={setShareOpen} />
-      )}
+      {/* Share Sheet */}
+      <Sheet open={shareOpen} onOpenChange={setShareOpen}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[50dvh] rounded-t-2xl bg-elev-1 border-t border-border"
+        >
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="text-lg tracking-tight">
+              Share Trip
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-4 pt-2 px-4 pb-6">
+            <p className="text-sm text-muted-foreground">
+              Share a link to <strong>{trip.name}</strong>.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={shareRole === "viewer" ? "default" : "outline"}
+                onClick={() => createShareLink("viewer")}
+                disabled={isLoadingShareLink}
+              >
+                Share view-only link
+              </Button>
+              <Button
+                variant={shareRole === "editor" ? "default" : "outline"}
+                onClick={() => createShareLink("editor")}
+                disabled={isLoadingShareLink}
+              >
+                Share editor link
+              </Button>
+            </div>
+
+            {/* Link display */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-elev-2 border border-border">
+              <Link className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground truncate flex-1 font-mono">
+                {isLoadingShareLink
+                  ? `Creating ${shareRole === "editor" ? "editor" : "view-only"} link...`
+                  : shareUrl || "Choose a share type to generate a link"}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleCopy}
+                disabled={!shareUrl || isLoadingShareLink}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-1.5" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-1.5" />
+                    Copy Link
+                  </>
+                )}
+              </Button>
+              {typeof navigator.share === "function" && (
+                <Button
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={handleNativeShare}
+                  disabled={!shareUrl || isLoadingShareLink}
+                >
+                  <Share2 className="h-4 w-4 mr-1.5" />
+                  Share
+                </Button>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

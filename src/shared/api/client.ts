@@ -94,12 +94,14 @@ export const tripsApi = {
     }),
   createShareLink: (
     tripId: string,
-    role: "viewer" | "editor" = "viewer",
+    role: "viewer" | "editor",
     expiresInDays?: number
   ): Promise<{ url: string }> =>
     request<{ url: string }>(`/trips/${tripId}/share-links`, {
       method: "POST",
-      body: JSON.stringify({ role, ...(expiresInDays ? { expiresInDays } : {}) }),
+      body: JSON.stringify(
+        expiresInDays ? { role, expiresInDays } : { role }
+      ),
     }),
   collaborators: (tripId: string): Promise<CollaboratorResponse[]> =>
     request<{ collaborators: CollaboratorResponse[] }>(`/trips/${tripId}/collaborators`)
@@ -219,13 +221,23 @@ export interface RefreshResponse {
   user?: AuthUser;
 }
 
-export interface ResolveShareResponse {
-  shareAccessToken?: string;
-  tripId: string;
-  role: "viewer" | "editor";
-  requiresAuth?: boolean;
-  claimed?: boolean;
-}
+export type ResolveShareResponse =
+  | {
+      shareAccessToken: string;
+      tripId: string;
+      role: "viewer";
+    }
+  | {
+      claimed: false;
+      requiresAuth: true;
+      tripId: string;
+      role: "editor";
+    }
+  | {
+      claimed: true;
+      tripId: string;
+      role: "editor";
+    };
 
 export const authApi = {
   requestLink: (email: string): Promise<RequestLinkResponse> =>

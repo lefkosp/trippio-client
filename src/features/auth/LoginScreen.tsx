@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/auth/useAuth";
 
 export function LoginScreen() {
   const { requestLink } = useAuth();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get("next");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [magicLink, setMagicLink] = useState<string | null>(null);
@@ -17,10 +20,18 @@ export function LoginScreen() {
     setStatus("sending");
     setErrorMessage("");
     setMagicLink(null);
+    if (next) {
+      sessionStorage.setItem("postLoginNext", next);
+    }
     try {
       const result = await requestLink(trimmed);
       setStatus("sent");
-      if (result.magicLink) setMagicLink(result.magicLink);
+      if (result.magicLink) {
+        const devLink = next
+          ? `${result.magicLink}${result.magicLink.includes("?") ? "&" : "?"}next=${encodeURIComponent(next)}`
+          : result.magicLink;
+        setMagicLink(devLink);
+      }
     } catch (err) {
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : "Something went wrong");
