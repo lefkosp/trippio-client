@@ -17,16 +17,32 @@ export function ShareOpenScreen() {
       try {
         const result = await shareApi.resolve(token);
         if (cancelled) return;
-        setShareSession({
-          tripId: result.tripId,
-          role: result.role,
-          token: result.shareAccessToken,
-        });
-        navigate("/today", { replace: true });
+
+        if (result.role === "viewer") {
+          setShareSession({
+            tripId: result.tripId,
+            role: result.role,
+            token: result.shareAccessToken!,
+          });
+          navigate("/today", { replace: true });
+        } else if (result.role === "editor") {
+          if (result.requiresAuth) {
+            navigate(`/login?next=/share/${encodeURIComponent(token)}`, { replace: true });
+          } else if (result.claimed) {
+            navigate("/today", { replace: true });
+          } else {
+            setErrorMessage("Failed to claim editor link.");
+          }
+        }
       } catch (err) {
         if (cancelled) return;
         clearShareSession();
-        setErrorMessage(err instanceof Error ? err.message : "Invalid share link.");
+        // Specific error for 404
+        if (err instanceof Error && (err.message.includes("404") || err.message.includes("not found"))) {
+          setErrorMessage("Link expired or revoked.");
+        } else {
+          setErrorMessage(err instanceof Error ? err.message : "Invalid share link.");
+        }
       }
     })();
 

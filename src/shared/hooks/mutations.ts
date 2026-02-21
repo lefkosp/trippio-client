@@ -14,6 +14,31 @@ export function useCreateTrip() {
   });
 }
 
+export function useUpdateCollaboratorRole(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: "editor" | "viewer" }) =>
+      tripsApi.updateCollaboratorRole(tripId, userId, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["collaborators", tripId] }),
+  });
+}
+
+export function useRemoveCollaborator(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => tripsApi.removeCollaborator(tripId, userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["collaborators", tripId] }),
+  });
+}
+
+export function useRevokeShareLink(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (shareLinkId: string) => tripsApi.revokeShareLink(tripId, shareLinkId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["share-links", tripId] }),
+  });
+}
+
 // ─── Events ─────────────────────────────────────────────────────────────────
 
 export function useCreateEvent(dayId: string) {

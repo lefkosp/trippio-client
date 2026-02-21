@@ -49,6 +49,22 @@ export function useTrip(tripId: string) {
   });
 }
 
+export function useCollaborators(tripId: string) {
+  return useQuery({
+    queryKey: ["collaborators", tripId],
+    queryFn: () => tripsApi.collaborators(tripId),
+    enabled: !!tripId && !useMocks,
+  });
+}
+
+export function useShareLinks(tripId: string) {
+  return useQuery({
+    queryKey: ["share-links", tripId],
+    queryFn: () => tripsApi.shareLinks(tripId),
+    enabled: !!tripId && !useMocks,
+  });
+}
+
 // ─── Days ────────────────────────────────────────────────────────────────────
 
 /**

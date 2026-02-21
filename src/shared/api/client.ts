@@ -50,11 +50,17 @@ async function request<T>(
     const errorData = await response.json().catch(() => ({
       error: { message: `HTTP ${response.status}: ${response.statusText}` },
     }));
+    if (response.status === 403) {
+      throw new Error("Access removed. You no longer have permission.");
+    }
     throw new Error(errorData.error?.message || `Request failed: ${response.statusText}`);
   }
 
   const result: ApiResponse<T> = await response.json();
   if (result.error) {
+    if (response.status === 403) {
+      throw new Error("Access removed. You no longer have permission.");
+    }
     throw new Error(result.error.message);
   }
 
@@ -62,6 +68,21 @@ async function request<T>(
 }
 
 // ─── Trips ──────────────────────────────────────────────────────────────────
+
+export interface CollaboratorResponse {
+  userId: string;
+  email: string;
+  role: "editor" | "viewer";
+  addedAt: string;
+}
+
+export interface ShareLinkResponse {
+  id: string;
+  role: "editor" | "viewer";
+  createdAt: string;
+  expiresAt?: string;
+  revokedAt?: string;
+}
 
 export const tripsApi = {
   list: (): Promise<Trip[]> => request<Trip[]>("/trips"),
@@ -73,14 +94,28 @@ export const tripsApi = {
     }),
   createShareLink: (
     tripId: string,
+    role: "viewer" | "editor" = "viewer",
     expiresInDays?: number
   ): Promise<{ url: string }> =>
     request<{ url: string }>(`/trips/${tripId}/share-links`, {
       method: "POST",
-      body: JSON.stringify(
-        expiresInDays ? { expiresInDays } : {}
-      ),
+      body: JSON.stringify({ role, ...(expiresInDays ? { expiresInDays } : {}) }),
     }),
+  collaborators: (tripId: string): Promise<CollaboratorResponse[]> =>
+    request<{ collaborators: CollaboratorResponse[] }>(`/trips/${tripId}/collaborators`)
+      .then((res) => res.collaborators),
+  updateCollaboratorRole: (tripId: string, userId: string, role: "editor" | "viewer"): Promise<{ ok: boolean }> =>
+    request<{ ok: boolean }>(`/trips/${tripId}/collaborators/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+  removeCollaborator: (tripId: string, userId: string): Promise<{ ok: boolean }> =>
+    request<{ ok: boolean }>(`/trips/${tripId}/collaborators/${userId}`, { method: "DELETE" }),
+  shareLinks: (tripId: string): Promise<ShareLinkResponse[]> =>
+    request<{ shareLinks: ShareLinkResponse[] }>(`/trips/${tripId}/share-links`)
+      .then((res) => res.shareLinks),
+  revokeShareLink: (tripId: string, shareLinkId: string): Promise<{ ok: boolean }> =>
+    request<{ ok: boolean }>(`/trips/${tripId}/share-links/${shareLinkId}/revoke`, { method: "POST" }),
 };
 
 // ─── Days ───────────────────────────────────────────────────────────────────
@@ -185,9 +220,11 @@ export interface RefreshResponse {
 }
 
 export interface ResolveShareResponse {
-  shareAccessToken: string;
+  shareAccessToken?: string;
   tripId: string;
-  role: "viewer";
+  role: "viewer" | "editor";
+  requiresAuth?: boolean;
+  claimed?: boolean;
 }
 
 export const authApi = {
