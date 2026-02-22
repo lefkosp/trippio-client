@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Lightbulb,
   Plus,
@@ -95,6 +96,14 @@ function getUserId(user: string | { _id: string; email: string } | undefined): s
   if (!user) return "";
   if (typeof user === "string") return user;
   return user._id;
+}
+
+/** First letter before @ from email, or fallback. */
+function initialFromEmail(user: string | { _id: string; email: string } | undefined): string {
+  const email = getEmail(user);
+  const at = email.indexOf("@");
+  if (at > 0) return email[0].toUpperCase();
+  return email ? email[0].toUpperCase() : "?";
 }
 
 // ─── ProposalCard ─────────────────────────────────────────────────────────────
@@ -239,8 +248,8 @@ function ProposalCard({
 
         {/* Vote summary + actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Vote counts */}
-          <div className="flex items-center gap-3 flex-1">
+          {/* Vote counts + initials */}
+          <div className="flex items-center gap-3 flex-1 flex-wrap">
             <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
               <ThumbsUp className="h-3.5 w-3.5" />
               {yesVotes}
@@ -249,6 +258,24 @@ function ProposalCard({
               <ThumbsDown className="h-3.5 w-3.5" />
               {noVotes}
             </span>
+            {proposal.votes.length > 0 && (
+              <div className="flex items-center gap-1">
+                {proposal.votes.slice(0, 3).map((v, i) => (
+                  <span
+                    key={i}
+                    className="h-5 w-5 rounded-full bg-elev-2 text-muted-foreground text-[10px] font-medium flex items-center justify-center border border-border shrink-0"
+                    aria-hidden
+                  >
+                    {initialFromEmail(v.userId)}
+                  </span>
+                ))}
+                {proposal.votes.length > 3 && (
+                  <span className="text-[10px] text-muted-foreground font-medium pl-0.5">
+                    +{proposal.votes.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
             {myVote && (
               <span className="text-[10px] text-muted-foreground">
                 You voted{" "}
@@ -513,6 +540,7 @@ function ConvertProposalSheet({
   tripId: string;
   days: Day[];
 }) {
+  const navigate = useNavigate();
   const convertMutation = useConvertProposal(tripId);
 
   const [dayId, setDayId] = useState(proposal?.suggestedDayId ?? "");
@@ -543,10 +571,14 @@ function ConvertProposalSheet({
     convertMutation.mutate(
       { proposalId: proposal._id, payload },
       {
-        onSuccess: () => {
-          toast.success("Added to itinerary!");
+        onSuccess: (data) => {
+          const day = days.find((d) => d._id === dayId);
+          toast.success(`Added to Day ${day?.dayNumber ?? ""}`);
           reset();
           onOpenChange(false);
+          navigate(`/itinerary/${dayId}`, {
+            state: { highlightEventId: data.event._id },
+          });
         },
         onError: (e) => toast.error(e.message),
       }

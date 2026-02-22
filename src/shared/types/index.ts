@@ -85,6 +85,8 @@ export interface TripEvent {
   order: number;
   status: EventStatus;
   notes?: string;      // kept optional for resilience
+  source?: string;     // e.g. "proposal" when created from a proposal
+  proposalId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

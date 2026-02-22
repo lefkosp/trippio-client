@@ -1,20 +1,27 @@
 import { Clock, MapPin, Route } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { eventTypeConfig } from "@/shared/utils/event-helpers";
 import type { TripEvent } from "@/shared/types";
 
 interface EventCardProps {
   event: TripEvent;
   onClick: () => void;
+  /** When set and equal to event._id, applies a brief highlight animation. */
+  highlightEventId?: string | null;
 }
 
-export function EventCard({ event, onClick }: EventCardProps) {
+export function EventCard({ event, onClick, highlightEventId }: EventCardProps) {
   const config = eventTypeConfig[event.type];
   const TypeIcon = config.icon;
+  const isHighlight = highlightEventId != null && highlightEventId === event._id;
 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left flex gap-3 py-3.5 px-2 hover-lift rounded-lg transition-colors"
+      className={cn(
+        "w-full text-left flex gap-3 py-3.5 px-2 hover-lift rounded-lg transition-colors",
+        isHighlight && "event-highlight-flash rounded-lg"
+      )}
     >
       {/* Timeline dot + line */}
       <div className="flex flex-col items-center pt-1.5">
@@ -29,6 +36,11 @@ export function EventCard({ event, onClick }: EventCardProps) {
             <TypeIcon className={`h-3 w-3 ${config.fgClass}`} />
           </div>
           <p className="font-medium text-sm truncate flex-1">{event.title}</p>
+          {event.source === "proposal" && (
+            <span className="badge-subtle bg-muted text-muted-foreground shrink-0">
+              From proposal
+            </span>
+          )}
           {event.status === "done" && (
             <span className="badge-subtle bg-success text-success-foreground">Done</span>
           )}

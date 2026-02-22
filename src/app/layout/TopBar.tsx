@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Check, Copy, Link, LogOut, Share2, Users } from "lucide-react";
+import {
+  ChevronDown,
+  Check,
+  Copy,
+  Link,
+  LogOut,
+  Share2,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -45,7 +53,9 @@ export function TopBar() {
       const { url } = await tripsApi.createShareLink(trip._id, role);
       setShareUrl(url);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not create share link");
+      toast.error(
+        err instanceof Error ? err.message : "Could not create share link",
+      );
     } finally {
       setIsLoadingShareLink(false);
     }

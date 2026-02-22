@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Plus, PackageOpen, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,6 +66,8 @@ function SuggestionCard({
 export function DayDetailScreen() {
   const { dayId } = useParams<{ dayId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const highlightEventId = (location.state as { highlightEventId?: string } | null)?.highlightEventId;
   const { tripId } = useTripContext();
   const { isReadOnly } = useAuth();
 
@@ -162,6 +164,7 @@ export function DayDetailScreen() {
               key={event._id}
               event={event}
               onClick={() => handleEventClick(event)}
+              highlightEventId={highlightEventId}
             />
           ))}
         </div>

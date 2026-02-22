@@ -9,11 +9,12 @@ import {
   CalendarDays,
   Ticket,
   Map,
+  Lightbulb,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTodayData } from "@/shared/hooks/queries";
+import { useTodayData, useProposals } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { eventTypeConfig } from "@/shared/utils/event-helpers";
 import { formatDate } from "@/lib/utils";
@@ -134,6 +135,8 @@ export function TodayScreen() {
   const { tripId } = useTripContext();
   const navigate = useNavigate();
   const { data, isLoading } = useTodayData(tripId);
+  const { data: openProposals = [] } = useProposals(tripId, { status: "open" });
+  const openCount = openProposals.length;
 
   if (isLoading) {
     return (
@@ -152,14 +155,40 @@ export function TodayScreen() {
 
   if (!data || data.events.length === 0) {
     return (
-      <div className="text-center py-16">
-        <div className="h-12 w-12 rounded-2xl bg-elev-2 flex items-center justify-center mx-auto mb-4">
-          <Flag className="h-6 w-6 text-muted-foreground" />
+      <div className="space-y-6">
+        {openCount > 0 && (
+          <Card className="bg-elev-1 border-border">
+            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                  <Lightbulb className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">Open proposals</p>
+                  <p className="text-xs text-muted-foreground">
+                    {openCount} {openCount === 1 ? "idea" : "ideas"} waiting for votes
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => navigate("/proposals?status=open")}
+              >
+                Review
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        <div className="text-center py-16">
+          <div className="h-12 w-12 rounded-2xl bg-elev-2 flex items-center justify-center mx-auto mb-4">
+            <Flag className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h2 className="text-lg font-semibold">No events today</h2>
+          <p className="text-sm text-muted-foreground mt-1.5">
+            Enjoy a free day or add something to your plan.
+          </p>
         </div>
-        <h2 className="text-lg font-semibold">No events today</h2>
-        <p className="text-sm text-muted-foreground mt-1.5">
-          Enjoy a free day or add something to your plan.
-        </p>
       </div>
     );
   }
@@ -185,6 +214,32 @@ export function TodayScreen() {
           <p className="text-caption italic mt-0.5">{day.notes}</p>
         )}
       </div>
+
+      {/* Open proposals card */}
+      {openCount > 0 && (
+        <Card className="bg-elev-1 border-border">
+          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                <Lightbulb className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm">Open proposals</p>
+                <p className="text-xs text-muted-foreground">
+                  {openCount} {openCount === 1 ? "idea" : "ideas"} waiting for votes
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => navigate("/proposals?status=open")}
+            >
+              Review
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Next up card */}
       {nextEvent && <NextUpCard event={nextEvent} />}

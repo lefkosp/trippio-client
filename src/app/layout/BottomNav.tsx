@@ -7,6 +7,8 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTripContext } from "@/shared/context/useTripContext";
+import { useProposals } from "@/shared/hooks/queries";
 
 const tabs = [
   { path: "/today", label: "Today", icon: Sun },
@@ -21,6 +23,9 @@ const moreTabPaths = ["/more", "/places", "/bookings", "/access"];
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { tripId } = useTripContext();
+  const { data: openProposals = [] } = useProposals(tripId, { status: "open" });
+  const openCount = openProposals.length;
 
   const isActive = (path: string) => {
     if (path === "/itinerary") {
@@ -61,7 +66,7 @@ export function BottomNav() {
               )}
               <div
                 className={cn(
-                  "flex items-center justify-center w-10 h-7 rounded-lg transition-colors duration-200",
+                  "relative flex items-center justify-center w-10 h-7 rounded-lg transition-colors duration-200",
                   active && "bg-accent",
                 )}
               >
@@ -71,6 +76,14 @@ export function BottomNav() {
                     active && "stroke-[2.5px]",
                   )}
                 />
+                {tab.path === "/proposals" && openCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center leading-none"
+                    aria-label={`${openCount} open proposals`}
+                  >
+                    {openCount > 9 ? "9+" : openCount}
+                  </span>
+                )}
               </div>
               <span
                 className={cn(
