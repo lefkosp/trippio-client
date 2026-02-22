@@ -15,6 +15,25 @@ export function useCreateTrip() {
   });
 }
 
+export function useDeleteTrip() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tripId: string) => tripsApi.delete(tripId),
+    onSuccess: (_data, tripId) => {
+      qc.setQueryData<Trip[]>(["trips"], (old) =>
+        old ? old.filter((t) => t._id !== tripId) : []
+      );
+      qc.removeQueries({ queryKey: ["trip", tripId] });
+      qc.removeQueries({ queryKey: ["days", tripId] });
+      qc.removeQueries({ queryKey: ["places", tripId] });
+      qc.removeQueries({ queryKey: ["bookings", tripId] });
+      qc.removeQueries({ queryKey: ["proposals", tripId] });
+      qc.removeQueries({ queryKey: ["share-links", tripId] });
+      qc.removeQueries({ queryKey: ["collaborators", tripId] });
+    },
+  });
+}
+
 export function useUpdateCollaboratorRole(tripId: string) {
   const qc = useQueryClient();
   return useMutation({

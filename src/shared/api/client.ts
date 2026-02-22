@@ -92,6 +92,10 @@ export const tripsApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  delete: (tripId: string): Promise<{ ok: boolean }> =>
+    request<{ ok: boolean }>(`/trips/${tripId}`, {
+      method: "DELETE",
+    }),
   createShareLink: (
     tripId: string,
     role: "viewer" | "editor",
