@@ -12,6 +12,9 @@ import { MapScreen } from "@/features/map/MapScreen";
 import { BookingsScreen } from "@/features/bookings/BookingsScreen";
 import { PlacesScreen } from "@/features/places/PlacesScreen";
 import { ShareOpenScreen } from "@/features/share/ShareOpenScreen";
+import { ProposalsScreen } from "@/features/proposals/ProposalsScreen";
+import { MoreScreen } from "@/features/more/MoreScreen";
+import { AccessScreen } from "@/features/share/AccessScreen";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +41,9 @@ function App() {
               <Route path="/map" element={<MapScreen />} />
               <Route path="/bookings" element={<BookingsScreen />} />
               <Route path="/places" element={<PlacesScreen />} />
+              <Route path="/proposals" element={<ProposalsScreen />} />
+              <Route path="/more" element={<MoreScreen />} />
+              <Route path="/access" element={<AccessScreen />} />
               <Route path="/" element={<Navigate to="/today" replace />} />
               <Route path="*" element={<Navigate to="/today" replace />} />
             </Route>

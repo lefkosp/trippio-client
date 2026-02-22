@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Trip, Day, TripEvent, Place, Booking, Suggestion } from "@/shared/types";
+import type { Trip, Day, TripEvent, Place, Booking, Suggestion, Proposal } from "@/shared/types";
 import {
   tripsApi,
   daysApi,
@@ -8,7 +8,9 @@ import {
   placesApi,
   bookingsApi,
   suggestionsApi,
+  proposalsApi,
 } from "@/shared/api/client";
+import type { ProposalFilters } from "@/shared/api/client";
 import * as mockStore from "@/shared/api/mock-store";
 
 const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
@@ -218,5 +220,15 @@ export function useSuggestions(tripId: string, city?: string) {
     queryKey: ["suggestions", tripId, city],
     queryFn: () => suggestionsApi.list(tripId, city),
     enabled: !!tripId,
+  });
+}
+
+// ─── Proposals ───────────────────────────────────────────────────────────────
+
+export function useProposals(tripId: string, filters?: ProposalFilters) {
+  return useQuery<Proposal[]>({
+    queryKey: ["proposals", tripId, filters?.status, filters?.category],
+    queryFn: () => proposalsApi.list(tripId, filters),
+    enabled: !!tripId && !useMocks,
   });
 }

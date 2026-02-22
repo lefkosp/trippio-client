@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { tripsApi, eventsApi, placesApi, bookingsApi } from "@/shared/api/client";
+import { tripsApi, eventsApi, placesApi, bookingsApi, proposalsApi } from "@/shared/api/client";
 import type { Trip, TripEvent, Place, Booking } from "@/shared/types";
+import type { CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
 
 // ─── Trips ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,55 @@ export function useUpdatePlace(tripId: string) {
       placesApi.update(placeId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["places", tripId] });
+    },
+  });
+}
+
+// ─── Proposals ───────────────────────────────────────────────────────────────
+
+export function useCreateProposal(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateProposalPayload) => proposalsApi.create(tripId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
+  });
+}
+
+export function useVoteProposal(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ proposalId, value }: { proposalId: string; value: "yes" | "no" }) =>
+      proposalsApi.vote(proposalId, value),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
+  });
+}
+
+export function useApproveProposal(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (proposalId: string) => proposalsApi.approve(proposalId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
+  });
+}
+
+export function useRejectProposal(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (proposalId: string) => proposalsApi.reject(proposalId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
+  });
+}
+
+export function useConvertProposal(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ proposalId, payload }: { proposalId: string; payload: ConvertProposalPayload }) =>
+      proposalsApi.convert(proposalId, payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["proposals", tripId] });
+      if (_data?.event?.dayId) {
+        qc.invalidateQueries({ queryKey: ["events", _data.event.dayId] });
+      }
     },
   });
 }

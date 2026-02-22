@@ -3,7 +3,7 @@
  * Uses credentials: include for refresh cookies; optional Bearer token for auth.
  */
 
-import type { Trip, Day, TripEvent, Place, Booking, Suggestion } from "@/shared/types";
+import type { Trip, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus } from "@/shared/types";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -256,4 +256,61 @@ export const authApi = {
 export const shareApi = {
   resolve: (token: string): Promise<ResolveShareResponse> =>
     request<ResolveShareResponse>(`/share/${encodeURIComponent(token)}`),
+};
+
+// ─── Proposals ───────────────────────────────────────────────────────────────
+
+export interface ProposalFilters {
+  status?: ProposalStatus;
+  category?: ProposalCategory;
+}
+
+export interface CreateProposalPayload {
+  title: string;
+  description?: string;
+  category: ProposalCategory;
+  suggestedDayId?: string;
+  suggestedPlaceId?: string;
+  links?: string[];
+}
+
+export interface ConvertProposalPayload {
+  dayId: string;
+  startTime?: string;
+  endTime?: string;
+  eventType?: string;
+}
+
+export const proposalsApi = {
+  list: (tripId: string, filters?: ProposalFilters): Promise<Proposal[]> => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.category) params.set("category", filters.category);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    return request<{ proposals: Proposal[] }>(`/trips/${tripId}/proposals${qs}`)
+      .then((res) => res.proposals);
+  },
+  create: (tripId: string, data: CreateProposalPayload): Promise<Proposal> =>
+    request<{ proposal: Proposal }>(`/trips/${tripId}/proposals`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).then((res) => res.proposal),
+  vote: (proposalId: string, value: "yes" | "no"): Promise<Proposal> =>
+    request<{ proposal: Proposal }>(`/proposals/${proposalId}/votes`, {
+      method: "POST",
+      body: JSON.stringify({ value }),
+    }).then((res) => res.proposal),
+  approve: (proposalId: string): Promise<Proposal> =>
+    request<{ proposal: Proposal }>(`/proposals/${proposalId}/approve`, {
+      method: "POST",
+    }).then((res) => res.proposal),
+  reject: (proposalId: string): Promise<Proposal> =>
+    request<{ proposal: Proposal }>(`/proposals/${proposalId}/reject`, {
+      method: "POST",
+    }).then((res) => res.proposal),
+  convert: (proposalId: string, payload: ConvertProposalPayload): Promise<{ event: TripEvent; proposal: Proposal }> =>
+    request<{ event: TripEvent; proposal: Proposal }>(`/proposals/${proposalId}/convert`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };

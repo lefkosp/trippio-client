@@ -2,19 +2,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   Map,
-  Ticket,
-  MapPin,
   Sun,
+  Lightbulb,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { path: "/today", label: "Today", icon: Sun },
   { path: "/itinerary", label: "Itinerary", icon: CalendarDays },
+  { path: "/proposals", label: "Proposals", icon: Lightbulb },
   { path: "/map", label: "Map", icon: Map },
-  { path: "/bookings", label: "Bookings", icon: Ticket },
-  { path: "/places", label: "Places", icon: MapPin },
+  { path: "/more", label: "More", icon: MoreHorizontal },
 ] as const;
+
+const moreTabPaths = ["/more", "/places", "/bookings", "/access"];
 
 export function BottomNav() {
   const location = useLocation();
@@ -24,12 +26,23 @@ export function BottomNav() {
     if (path === "/itinerary") {
       return location.pathname.startsWith("/itinerary");
     }
+    if (path === "/proposals") {
+      return location.pathname.startsWith("/proposals");
+    }
+    if (path === "/more") {
+      return moreTabPaths.some(
+        (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
+      );
+    }
     return location.pathname === path;
   };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border safe-area-bottom">
-      <div className="flex items-center justify-around max-w-md mx-auto px-2" style={{ height: '60px' }}>
+      <div
+        className="flex items-center justify-around max-w-md mx-auto px-2"
+        style={{ height: "60px" }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = isActive(tab.path);
@@ -39,25 +52,32 @@ export function BottomNav() {
               onClick={() => navigate(tab.path)}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-h-[44px] rounded-xl transition-all duration-200 press-scale",
-                active
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                active ? "text-primary" : "text-muted-foreground",
               )}
             >
               {/* Active pill glow */}
               {active && (
                 <div className="absolute inset-x-2 -top-px h-0.5 rounded-full bg-primary/80" />
               )}
-              <div className={cn(
-                "flex items-center justify-center w-10 h-7 rounded-lg transition-colors duration-200",
-                active && "bg-accent"
-              )}>
-                <Icon className={cn("h-[18px] w-[18px]", active && "stroke-[2.5px]")} />
+              <div
+                className={cn(
+                  "flex items-center justify-center w-10 h-7 rounded-lg transition-colors duration-200",
+                  active && "bg-accent",
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px]",
+                    active && "stroke-[2.5px]",
+                  )}
+                />
               </div>
-              <span className={cn(
-                "text-[10px] font-medium transition-colors",
-                active ? "text-primary" : "text-muted-foreground"
-              )}>
+              <span
+                className={cn(
+                  "text-[10px] font-medium transition-colors",
+                  active ? "text-primary" : "text-muted-foreground",
+                )}
+              >
                 {tab.label}
               </span>
             </button>

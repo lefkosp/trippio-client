@@ -108,6 +108,37 @@ export interface Booking {
   updatedAt?: string;
 }
 
+// ─── Proposal ────────────────────────────────────────────────────────────────
+
+export type ProposalCategory = "food" | "activity" | "stay" | "transport" | "other";
+export type ProposalStatus = "open" | "approved" | "rejected";
+
+export interface ProposalVote {
+  userId: string | { _id: string; email: string };
+  value: "yes" | "no";
+  votedAt: string;
+}
+
+export interface Proposal {
+  _id: string;
+  tripId: string;
+  title: string;
+  description?: string;
+  category: ProposalCategory;
+  suggestedDayId?: string;
+  suggestedPlaceId?: string;
+  links?: string[];
+  proposedBy: string | { _id: string; email: string };
+  status: ProposalStatus;
+  votes: ProposalVote[];
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ─── Suggestion ──────────────────────────────────────────────────────────────
 
 export interface Suggestion {
