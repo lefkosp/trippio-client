@@ -155,7 +155,7 @@ export function AppShell() {
           <span className="trippio-wordmark text-lg block mb-4">Trippio</span>
           <p className="text-sm text-muted-foreground">
             {error
-              ? "Could not open this trip. Make sure the backend is running on port 4000 and the link is valid."
+              ? "Could not open this trip. Check your connection to the Trippio server and make sure the link is valid."
               : isReadOnly
                 ? "This shared trip is not available."
                 : "No trips found. Create one or seed the database with `npm run seed`."}

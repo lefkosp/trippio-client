@@ -155,7 +155,7 @@ export function useConvertProposal(tripId: string) {
   return useMutation({
     mutationFn: ({ proposalId, payload }: { proposalId: string; payload: ConvertProposalPayload }) =>
       proposalsApi.convert(proposalId, payload),
-    onSuccess: (_data, vars) => {
+    onSuccess: (_data) => {
       qc.invalidateQueries({ queryKey: ["proposals", tripId] });
       if (_data?.event?.dayId) {
         qc.invalidateQueries({ queryKey: ["events", _data.event.dayId] });
