@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Plus, PackageOpen, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDay, useEventsWithPlaces, useSuggestions } from "@/shared/hooks/queries";
+import { useDay, useDays, useEventsWithPlaces, useSuggestions } from "@/shared/hooks/queries";
 import { useCreateEvent } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import { formatDate } from "@/lib/utils";
-import { cityColor } from "@/lib/cityColor";
+import { buildCityColorMap } from "@/lib/cityColor";
 import { EventCard } from "./components/EventCard";
 import { EventSheet } from "./components/EventSheet";
 import { AddEventSheet } from "./components/AddEventSheet";
@@ -71,6 +71,15 @@ export function DayDetailScreen() {
   const { data: suggestions } = useSuggestions(tripId, day?.city);
   const createEvent = useCreateEvent(dayId ?? "");
 
+  // Same query cache useDay() already reads from — no extra fetch — used
+  // here to build the same city → colour assignment ItineraryScreen uses,
+  // so a city's badge is the same colour everywhere it appears.
+  const { data: days } = useDays(tripId);
+  const cityColors = useMemo(
+    () => buildCityColorMap(days?.map((d) => d.city) ?? []),
+    [days]
+  );
+
   const [selectedEvent, setSelectedEvent] = useState<TripEvent | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -124,7 +133,7 @@ export function DayDetailScreen() {
     month: "long",
     day: "numeric",
   });
-  const cityConfig = cityColor(day.city);
+  const cityConfig = day.city ? cityColors.get(day.city) : undefined;
 
   return (
     <div className="space-y-6">

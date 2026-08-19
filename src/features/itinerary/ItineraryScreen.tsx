@@ -17,18 +17,26 @@ import { useGenerateDays, useUpdateDay } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import { formatDate } from "@/lib/utils";
-import { cityColor } from "@/lib/cityColor";
+import { buildCityColorMap, type CityColorMap } from "@/lib/cityColor";
 import { toast } from "sonner";
 import type { Day } from "@/shared/types";
 
-function DayRow({ day, onEditCity }: { day: Day; onEditCity: (day: Day) => void }) {
+function DayRow({
+  day,
+  cityColors,
+  onEditCity,
+}: {
+  day: Day;
+  cityColors: CityColorMap;
+  onEditCity: (day: Day) => void;
+}) {
   const navigate = useNavigate();
   const dateStr = formatDate(day.date, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
-  const cityConfig = cityColor(day.city);
+  const cityConfig = day.city ? cityColors.get(day.city) : undefined;
 
   return (
     <div className="w-full flex items-center gap-3 py-3 px-2 hover-lift rounded-lg transition-colors">
@@ -160,21 +168,22 @@ export function ItineraryScreen() {
 
   const generateDays = useGenerateDays(tripId);
 
+  // Built once from the day list (in date order) so every city on this trip
+  // gets a distinct colour up to the palette size, and the same city always
+  // renders the same colour across the filter chips and the day rows below.
+  const cityColors = useMemo(
+    () => buildCityColorMap(days?.map((d) => d.city) ?? []),
+    [days]
+  );
+
   const cityFilterOptions: FilterOption[] = useMemo(() => {
-    if (!days) return [];
-    const seen = new Set<string>();
-    const cities: string[] = [];
-    for (const d of days) {
-      if (d.city && !seen.has(d.city)) {
-        seen.add(d.city);
-        cities.push(d.city);
-      }
-    }
-    return cities.map((city) => {
-      const config = cityColor(city);
-      return { value: city, label: city, bgClass: config?.bgClass, fgClass: config?.fgClass };
-    });
-  }, [days]);
+    return Array.from(cityColors.entries()).map(([city, config]) => ({
+      value: city,
+      label: city,
+      bgClass: config.bgClass,
+      fgClass: config.fgClass,
+    }));
+  }, [cityColors]);
 
   const filteredDays = useMemo(() => {
     if (!days) return undefined;
@@ -241,7 +250,7 @@ export function ItineraryScreen() {
           <CardContent className="p-2">
             {filteredDays.map((day, i) => (
               <div key={day._id}>
-                <DayRow day={day} onEditCity={handleEditCity} />
+                <DayRow day={day} cityColors={cityColors} onEditCity={handleEditCity} />
                 {i < (filteredDays.length - 1) && (
                   <div className="mx-2 border-b border-border" />
                 )}
