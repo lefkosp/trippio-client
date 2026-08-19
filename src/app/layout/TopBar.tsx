@@ -18,14 +18,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
+import { CreateTripWizard } from "./CreateTripWizard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,13 +34,8 @@ import { useTripContext } from "@/shared/context/useTripContext";
 import { useTripSwitcher } from "@/shared/context/TripSwitcherContext";
 import { useAuth } from "@/auth/useAuth";
 import { tripsApi } from "@/shared/api/client";
-import { useCreateTrip, useDeleteTrip } from "@/shared/hooks/mutations";
+import { useDeleteTrip } from "@/shared/hooks/mutations";
 import { toast } from "sonner";
-
-const DEFAULT_TIMEZONE =
-  typeof Intl !== "undefined" && Intl.DateTimeFormat?.().resolvedOptions?.().timeZone
-    ? Intl.DateTimeFormat().resolvedOptions().timeZone
-    : "Asia/Tokyo";
 
 export function TopBar() {
   const navigate = useNavigate();
@@ -59,14 +48,9 @@ export function TopBar() {
   const [shareUrl, setShareUrl] = useState("");
   const [isLoadingShareLink, setIsLoadingShareLink] = useState(false);
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createName, setCreateName] = useState("");
-  const [createStartDate, setCreateStartDate] = useState("");
-  const [createEndDate, setCreateEndDate] = useState("");
-  const [createTimezone, setCreateTimezone] = useState(DEFAULT_TIMEZONE);
+  const [createWizardOpen, setCreateWizardOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const createTrip = useCreateTrip();
   const deleteTrip = useDeleteTrip();
 
   const canShowActions = !isReadOnly && !!user;
@@ -136,30 +120,11 @@ export function TopBar() {
     }
   }
 
-  async function handleCreateTrip(e: React.FormEvent) {
-    e.preventDefault();
-    if (!createName.trim()) return;
-    const start = createStartDate || new Date().toISOString().slice(0, 10);
-    const end = createEndDate || start;
-    try {
-      const newTrip = await createTrip.mutateAsync({
-        name: createName.trim(),
-        startDate: start,
-        endDate: end,
-        timezone: createTimezone || DEFAULT_TIMEZONE,
-      });
-      toast.success("Trip created");
-      setSelectedTripId(newTrip._id);
-      setCreateOpen(false);
-      setCreateName("");
-      setCreateStartDate("");
-      setCreateEndDate("");
-      setCreateTimezone(DEFAULT_TIMEZONE);
-      setSwitcherOpen(false);
-      navigate("/today");
-    } catch {
-      toast.error("Could not create trip");
-    }
+  function handleCreateTripSuccess(newTrip: { _id: string }) {
+    setSelectedTripId(newTrip._id);
+    setCreateWizardOpen(false);
+    setSwitcherOpen(false);
+    navigate("/today");
   }
 
   function openDeleteDialog() {
@@ -280,7 +245,7 @@ export function TopBar() {
                     type="button"
                     onClick={() => {
                       setSwitcherOpen(false);
-                      setCreateOpen(true);
+                      setCreateWizardOpen(true);
                     }}
                     className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground hover:bg-elev-2 transition-colors"
                   >
@@ -307,50 +272,11 @@ export function TopBar() {
         </SheetContent>
       </Sheet>
 
-      {/* Create trip dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[calc(100%-2rem)]">
-          <DialogHeader>
-            <DialogTitle>Create trip</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateTrip} className="space-y-4 pt-2">
-            <Input
-              placeholder="Trip name"
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-              required
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="date"
-                placeholder="Start date"
-                value={createStartDate}
-                onChange={(e) => setCreateStartDate(e.target.value)}
-                required
-              />
-              <Input
-                type="date"
-                placeholder="End date"
-                value={createEndDate}
-                onChange={(e) => setCreateEndDate(e.target.value)}
-                required
-              />
-            </div>
-            <Input
-              placeholder="Timezone (optional)"
-              value={createTimezone}
-              onChange={(e) => setCreateTimezone(e.target.value)}
-            />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={createTrip.isPending}
-            >
-              {createTrip.isPending ? "Creating…" : "Create"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateTripWizard
+        open={createWizardOpen}
+        onOpenChange={setCreateWizardOpen}
+        onSuccess={handleCreateTripSuccess}
+      />
 
       {/* Delete trip confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

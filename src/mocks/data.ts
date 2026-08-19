@@ -18,6 +18,17 @@ export const mockTrip: Trip = {
   createdBy: "user-1",
   collaborators: [{ userId: "user-1", role: "owner" }],
   shareLinks: [],
+  preferences: {
+    destinationCity: "Tokyo",
+    destinationCountry: "Japan",
+    pace: "balanced",
+    dailyStructure: "mixed",
+    interests: ["Food", "Culture & history", "Nature", "Museums"],
+    budgetLevel: "mid",
+    transportPreference: "publicTransport",
+    notes: "First time in Japan.",
+    groupSize: 2,
+  },
 };
 
 // ─── Places ──────────────────────────────────────────────────────────────────

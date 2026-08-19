@@ -3,7 +3,7 @@
  * Uses credentials: include for refresh cookies; optional Bearer token for auth.
  */
 
-import type { Trip, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus } from "@/shared/types";
+import type { Trip, TripPreferences, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus } from "@/shared/types";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -84,10 +84,18 @@ export interface ShareLinkResponse {
   revokedAt?: string;
 }
 
+export interface CreateTripPayload {
+  name: string;
+  startDate: string;
+  endDate: string;
+  timezone?: string;
+  preferences: TripPreferences;
+}
+
 export const tripsApi = {
   list: (): Promise<Trip[]> => request<Trip[]>("/trips"),
   get: (tripId: string): Promise<Trip> => request<Trip>(`/trips/${tripId}`),
-  create: (data: Partial<Trip>): Promise<Trip> =>
+  create: (data: CreateTripPayload): Promise<Trip> =>
     request<Trip>("/trips", {
       method: "POST",
       body: JSON.stringify(data),

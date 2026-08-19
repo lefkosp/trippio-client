@@ -1,91 +1,16 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { TopBar } from "./TopBar";
 import { BottomNav } from "./BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CreateTripWizard } from "./CreateTripWizard";
 import { useAuth } from "@/auth/useAuth";
 import { useTrip, useTrips } from "@/shared/hooks/queries";
-import { useCreateTrip } from "@/shared/hooks/mutations";
 import { TripProvider } from "@/shared/context/TripContext";
 import { TripSwitcherProvider } from "@/shared/context/TripSwitcherContext";
 
 const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
-
-function CreateTripDialog() {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const createTrip = useCreateTrip();
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    const start = startDate || new Date().toISOString().slice(0, 10);
-    const end = endDate || start;
-    try {
-      await createTrip.mutateAsync({
-        name: name.trim(),
-        startDate: start,
-        endDate: end,
-        timezone: "UTC",
-      });
-      setOpen(false);
-      setName("");
-      setStartDate("");
-      setEndDate("");
-    } catch {
-      // Error surfaced by mutation
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Create trip</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create trip</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Input
-            placeholder="Trip name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              type="date"
-              placeholder="Start"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <Input
-              type="date"
-              placeholder="End"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={createTrip.isPending}>
-            {createTrip.isPending ? "Creating…" : "Create"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export function AppShell() {
   const navigate = useNavigate();
@@ -96,6 +21,7 @@ export function AppShell() {
     share?.tripId ?? ""
   );
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -164,7 +90,17 @@ export function AppShell() {
             {error instanceof Error ? error.message : ""}
           </p>
           {!useMocks && !isReadOnly && (
-            <CreateTripDialog />
+            <>
+              <Button onClick={() => setWizardOpen(true)}>Create trip</Button>
+              <CreateTripWizard
+                open={wizardOpen}
+                onOpenChange={setWizardOpen}
+                onSuccess={(newTrip) => {
+                  setSelectedTripId(newTrip._id);
+                  navigate("/today");
+                }}
+              />
+            </>
           )}
         </div>
       </div>

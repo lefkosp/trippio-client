@@ -12,6 +12,18 @@ export interface ShareLink {
   createdAt: string;
 }
 
+export interface TripPreferences {
+  destinationCity: string;
+  destinationCountry?: string;
+  pace: "relaxed" | "balanced" | "packed";
+  dailyStructure?: "morning-heavy" | "evening-heavy" | "mixed";
+  interests: string[];
+  budgetLevel: "low" | "mid" | "high";
+  transportPreference?: "publicTransport" | "mixed" | "taxis";
+  notes?: string;
+  groupSize: number;
+}
+
 export interface Trip {
   _id: string;
   name: string;
@@ -21,6 +33,7 @@ export interface Trip {
   createdBy: string;
   collaborators: Collaborator[];
   shareLinks: ShareLink[];
+  preferences?: TripPreferences;
   createdAt?: string;
   updatedAt?: string;
 }

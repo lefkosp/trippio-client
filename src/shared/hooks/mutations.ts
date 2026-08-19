@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tripsApi, eventsApi, placesApi, bookingsApi, proposalsApi } from "@/shared/api/client";
 import type { Trip, TripEvent, Place, Booking } from "@/shared/types";
-import type { CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
+import type { CreateTripPayload, CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
 
 // ─── Trips ───────────────────────────────────────────────────────────────────
 
 export function useCreateTrip() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<Trip>) => tripsApi.create(data),
+    mutationFn: (data: CreateTripPayload) => tripsApi.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["trips"] });
     },
