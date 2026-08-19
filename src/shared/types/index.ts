@@ -65,6 +65,11 @@ export interface Place {
   googleMapsUrl?: string;
   tags?: string[];   // e.g. ["food", "shrine", "museum"]
   notes?: string;
+  nameZh?: string;
+  metroStation?: string;
+  metroLine?: string;
+  requiresAdvanceBooking?: boolean;
+  bookingWindowDays?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -106,7 +111,7 @@ export interface TripEvent {
 
 // ─── Booking ─────────────────────────────────────────────────────────────────
 
-export type BookingType = "flight" | "hotel" | "reservation" | "rail" | "activity" | "other";
+export type BookingType = "flight" | "hotel" | "reservation" | "rail" | "activity" | "visa" | "document" | "other";
 
 export interface Booking {
   _id: string;

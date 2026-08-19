@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { tripsApi, eventsApi, placesApi, bookingsApi, proposalsApi, linkPreviewApi } from "@/shared/api/client";
+import { tripsApi, daysApi, eventsApi, placesApi, bookingsApi, proposalsApi, linkPreviewApi } from "@/shared/api/client";
 import type { Trip, TripEvent, Place, Booking } from "@/shared/types";
 import type {
   CreateTripPayload,
@@ -65,6 +65,25 @@ export function useRevokeShareLink(tripId: string) {
   });
 }
 
+// ─── Days ───────────────────────────────────────────────────────────────────
+
+export function useGenerateDays(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => daysApi.generate(tripId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["days", tripId] }),
+  });
+}
+
+export function useUpdateDay(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ dayId, data }: { dayId: string; data: { city?: string; notes?: string } }) =>
+      daysApi.update(dayId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["days", tripId] }),
+  });
+}
+
 // ─── Events ─────────────────────────────────────────────────────────────────
 
 export function useCreateEvent(dayId: string) {
@@ -72,7 +91,9 @@ export function useCreateEvent(dayId: string) {
   return useMutation({
     mutationFn: (data: Partial<TripEvent>) => eventsApi.create(dayId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["events", dayId] });
+      // Broad match ("events") also covers the trip-wide ["events","trip",tripId]
+      // cache — assigning a place to a day changes what shows as unassigned.
+      qc.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }

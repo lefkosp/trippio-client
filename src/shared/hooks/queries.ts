@@ -174,6 +174,32 @@ export function useEventsWithPlaces(dayId: string, tripId: string) {
   };
 }
 
+/** Every event across the whole trip — used by the "all places" map and the
+ * unassigned-shortlist view, both of which need to know what's scheduled
+ * anywhere, not just on one day. */
+export function useTripEvents(tripId: string) {
+  return useQuery<TripEvent[]>({
+    queryKey: ["events", "trip", tripId],
+    queryFn: () => eventsApi.listByTrip(tripId),
+    enabled: !!tripId,
+  });
+}
+
+/** Promoted places that don't yet have an event anywhere in the trip — the
+ * "unassigned" bucket for the shortlist → day-assignment screen. */
+export function useUnassignedPlaces(tripId: string) {
+  const { data: places, isLoading: placesLoading } = usePlaces(tripId);
+  const { data: events, isLoading: eventsLoading } = useTripEvents(tripId);
+
+  const data = useMemo(() => {
+    if (!places || !events) return undefined;
+    const assignedPlaceIds = new Set(events.map((e) => e.placeId).filter(Boolean));
+    return places.filter((p) => !assignedPlaceIds.has(p._id));
+  }, [places, events]);
+
+  return { data, isLoading: placesLoading || eventsLoading };
+}
+
 // ─── Today ───────────────────────────────────────────────────────────────────
 
 /**

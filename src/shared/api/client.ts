@@ -167,6 +167,15 @@ export const daysApi = {
     request<Omit<Day, "dayNumber">[]>(`/trips/${tripId}/days`),
   get: (dayId: string): Promise<Omit<Day, "dayNumber">> =>
     request<Omit<Day, "dayNumber">>(`/days/${dayId}`),
+  generate: (tripId: string): Promise<Omit<Day, "dayNumber">[]> =>
+    request<Omit<Day, "dayNumber">[]>(`/trips/${tripId}/days/generate`, {
+      method: "POST",
+    }),
+  update: (dayId: string, data: { city?: string; notes?: string }): Promise<Omit<Day, "dayNumber">> =>
+    request<Omit<Day, "dayNumber">>(`/days/${dayId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ─── Events ─────────────────────────────────────────────────────────────────
@@ -174,6 +183,8 @@ export const daysApi = {
 export const eventsApi = {
   list: (dayId: string): Promise<TripEvent[]> =>
     request<TripEvent[]>(`/days/${dayId}/events`),
+  listByTrip: (tripId: string): Promise<TripEvent[]> =>
+    request<TripEvent[]>(`/trips/${tripId}/events`),
   create: (dayId: string, data: Partial<TripEvent>): Promise<TripEvent> =>
     request<TripEvent>(`/days/${dayId}/events`, {
       method: "POST",
