@@ -9,16 +9,11 @@ import { useCreateEvent } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import { formatDate } from "@/lib/utils";
+import { cityColor } from "@/lib/cityColor";
 import { EventCard } from "./components/EventCard";
 import { EventSheet } from "./components/EventSheet";
 import { AddEventSheet } from "./components/AddEventSheet";
 import type { TripEvent, Suggestion } from "@/shared/types";
-
-const cityBadgeConfig: Record<string, { bgClass: string; fgClass: string }> = {
-  Tokyo: { bgClass: "bg-city-tokyo", fgClass: "text-city-tokyo-foreground" },
-  Kyoto: { bgClass: "bg-city-kyoto", fgClass: "text-city-kyoto-foreground" },
-  Osaka: { bgClass: "bg-city-osaka", fgClass: "text-city-osaka-foreground" },
-};
 
 function SuggestionCard({
   suggestion,
@@ -129,7 +124,7 @@ export function DayDetailScreen() {
     month: "long",
     day: "numeric",
   });
-  const cityConfig = cityBadgeConfig[day.city];
+  const cityConfig = cityColor(day.city);
 
   return (
     <div className="space-y-6">

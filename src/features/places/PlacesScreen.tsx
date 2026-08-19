@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MapPin,
   Search,
@@ -10,6 +11,9 @@ import {
   Landmark,
   Building2,
   Shrub,
+  TrainFront,
+  CalendarClock,
+  CalendarPlus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,8 +28,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { usePlaces } from "@/shared/hooks/queries";
-import { useCreatePlace } from "@/shared/hooks/mutations";
+import { toast } from "sonner";
+import { usePlaces, useDays } from "@/shared/hooks/queries";
+import { useCreatePlace, useCreateEvent } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import type { Place } from "@/shared/types";
@@ -62,6 +67,9 @@ function PlaceCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm">{place.name}</h3>
+            {place.nameZh && (
+              <p className="text-sm text-muted-foreground/90 mt-0.5">{place.nameZh}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {place.address}
             </p>
@@ -135,10 +143,14 @@ function PlaceDetailSheet({
   place,
   open,
   onOpenChange,
+  onAssign,
+  isReadOnly,
 }: {
   place: Place | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAssign: (place: Place) => void;
+  isReadOnly: boolean;
 }) {
   if (!place) return null;
 
@@ -169,6 +181,9 @@ function PlaceDetailSheet({
           <SheetTitle className="text-xl tracking-tight">
             {place.name}
           </SheetTitle>
+          {place.nameZh && (
+            <p className="text-lg text-muted-foreground">{place.nameZh}</p>
+          )}
         </SheetHeader>
 
         <div className="space-y-4 pt-2 px-4 pb-6">
@@ -186,6 +201,27 @@ function PlaceDetailSheet({
               >
                 {place.phone}
               </a>
+            </div>
+          )}
+
+          {(place.metroStation || place.metroLine) && (
+            <div className="flex items-center gap-3">
+              <TrainFront className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm">
+                {[place.metroLine, place.metroStation].filter(Boolean).join(" — ")}
+              </p>
+            </div>
+          )}
+
+          {place.requiresAdvanceBooking && (
+            <div className="flex items-center gap-3 rounded-lg bg-warning/10 px-3 py-2">
+              <CalendarClock className="h-4 w-4 text-warning-foreground shrink-0" />
+              <p className="text-xs text-warning-foreground">
+                Requires advance booking
+                {place.bookingWindowDays
+                  ? ` — book at least ${place.bookingWindowDays} day${place.bookingWindowDays === 1 ? "" : "s"} ahead`
+                  : ""}
+              </p>
             </div>
           )}
 
@@ -207,6 +243,17 @@ function PlaceDetailSheet({
             </Button>
           )}
 
+          {!isReadOnly && (
+            <Button
+              size="sm"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => onAssign(place)}
+            >
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Assign to day
+            </Button>
+          )}
+
           {place.notes && (
             <>
               <Separator className="bg-border" />
@@ -216,6 +263,100 @@ function PlaceDetailSheet({
               </div>
             </>
           )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── AssignToDaySheet ───────────────────────────────────────────────────────
+// The other half of the shortlist → day-assignment loop: promoting a
+// proposal creates the Place, this is what puts it on the itinerary.
+
+function AssignToDaySheet({
+  place,
+  open,
+  onOpenChange,
+}: {
+  place: Place | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const navigate = useNavigate();
+  const { tripId } = useTripContext();
+  const { data: days = [] } = useDays(tripId);
+  const [dayId, setDayId] = useState("");
+  const createEvent = useCreateEvent(dayId);
+
+  useEffect(() => {
+    if (open) setDayId("");
+  }, [open]);
+
+  function handleAssign() {
+    if (!place || !dayId) return;
+    createEvent.mutate(
+      { title: place.name, placeId: place._id, type: "sight", order: 0 },
+      {
+        onSuccess: () => {
+          const day = days.find((d) => d._id === dayId);
+          toast.success(`Added to Day ${day?.dayNumber ?? ""}`);
+          onOpenChange(false);
+          navigate(`/itinerary/${dayId}`);
+        },
+        onError: (e) => toast.error(e.message),
+      }
+    );
+  }
+
+  if (!place) return null;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+      >
+        <SheetHeader className="text-left pb-2">
+          <SheetTitle className="text-lg tracking-tight">Assign to day</SheetTitle>
+          <p className="text-sm text-muted-foreground leading-snug">{place.name}</p>
+        </SheetHeader>
+
+        <div className="space-y-4 pt-1 px-4 pb-6">
+          {days.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No days yet — generate days from the Itinerary tab first.
+            </p>
+          ) : (
+            <div>
+              <label className="text-section-label mb-1.5 block">Day</label>
+              <select
+                value={dayId}
+                onChange={(e) => setDayId(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
+              >
+                <option value="">Select a day…</option>
+                {days.map((day) => (
+                  <option key={day._id} value={day._id}>
+                    Day {day.dayNumber}
+                    {day.city ? ` — ${day.city}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handleAssign}
+              disabled={!dayId || createEvent.isPending}
+            >
+              {createEvent.isPending ? "Adding…" : "Assign"}
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -235,18 +376,28 @@ function AddPlaceSheet({
   const createPlace = useCreatePlace(tripId);
 
   const [name, setName] = useState("");
+  const [nameZh, setNameZh] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [metroStation, setMetroStation] = useState("");
+  const [metroLine, setMetroLine] = useState("");
+  const [requiresAdvanceBooking, setRequiresAdvanceBooking] = useState(false);
+  const [bookingWindowDays, setBookingWindowDays] = useState("");
   const [notes, setNotes] = useState("");
 
   function reset() {
     setName("");
+    setNameZh("");
     setAddress("");
     setPhone("");
     setTagsInput("");
     setGoogleMapsUrl("");
+    setMetroStation("");
+    setMetroLine("");
+    setRequiresAdvanceBooking(false);
+    setBookingWindowDays("");
     setNotes("");
   }
 
@@ -260,10 +411,15 @@ function AddPlaceSheet({
     createPlace.mutate(
       {
         name: name.trim(),
+        nameZh: nameZh.trim() || undefined,
         address: address.trim(),
         phone: phone || undefined,
         tags: tags.length > 0 ? tags : undefined,
         googleMapsUrl: googleMapsUrl || undefined,
+        metroStation: metroStation.trim() || undefined,
+        metroLine: metroLine.trim() || undefined,
+        requiresAdvanceBooking: requiresAdvanceBooking || undefined,
+        bookingWindowDays: bookingWindowDays ? Number(bookingWindowDays) : undefined,
         notes: notes || undefined,
       },
       {
@@ -286,14 +442,26 @@ function AddPlaceSheet({
         </SheetHeader>
 
         <div className="space-y-4 pt-1 px-4 pb-6">
-          <div>
-            <label className="text-section-label mb-1.5 block">Name</label>
-            <Input
-              placeholder="e.g. Senso-ji Temple"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-section-label mb-1.5 block">Name</label>
+              <Input
+                placeholder="e.g. Senso-ji Temple"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-section-label mb-1.5 block">
+                Chinese name <span className="text-muted-foreground/60">(optional)</span>
+              </label>
+              <Input
+                placeholder="e.g. 天坛"
+                value={nameZh}
+                onChange={(e) => setNameZh(e.target.value)}
+              />
+            </div>
           </div>
           <div>
             <label className="text-section-label mb-1.5 block">Address</label>
@@ -321,6 +489,28 @@ function AddPlaceSheet({
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-section-label mb-1.5 block">
+                Metro line <span className="text-muted-foreground/60">(optional)</span>
+              </label>
+              <Input
+                placeholder="e.g. Line 2"
+                value={metroLine}
+                onChange={(e) => setMetroLine(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-section-label mb-1.5 block">
+                Metro station <span className="text-muted-foreground/60">(optional)</span>
+              </label>
+              <Input
+                placeholder="e.g. Tiantan Dongmen"
+                value={metroStation}
+                onChange={(e) => setMetroStation(e.target.value)}
+              />
+            </div>
+          </div>
           <div>
             <label className="text-section-label mb-1.5 block">
               Google Maps URL
@@ -330,6 +520,28 @@ function AddPlaceSheet({
               value={googleMapsUrl}
               onChange={(e) => setGoogleMapsUrl(e.target.value)}
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="requires-advance-booking"
+              checked={requiresAdvanceBooking}
+              onChange={(e) => setRequiresAdvanceBooking(e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            <label htmlFor="requires-advance-booking" className="text-sm">
+              Requires advance booking
+            </label>
+            {requiresAdvanceBooking && (
+              <Input
+                type="number"
+                min={1}
+                placeholder="days ahead"
+                value={bookingWindowDays}
+                onChange={(e) => setBookingWindowDays(e.target.value)}
+                className="w-28 ml-auto"
+              />
+            )}
           </div>
           <div>
             <label className="text-section-label mb-1.5 block">Notes</label>
@@ -389,6 +601,8 @@ export function PlacesScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [assignPlace, setAssignPlace] = useState<Place | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -474,6 +688,17 @@ export function PlacesScreen() {
         place={selectedPlace}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        isReadOnly={isReadOnly}
+        onAssign={(place) => {
+          setDetailOpen(false);
+          setAssignPlace(place);
+          setAssignOpen(true);
+        }}
+      />
+      <AssignToDaySheet
+        place={assignPlace}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
       />
     </div>
   );

@@ -14,6 +14,8 @@ import {
   Clock,
   MapPin,
   Trash2,
+  IdCard,
+  FileText,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +75,18 @@ const bookingTypeConfig: Record<
     bgClass: "bg-booking-activity",
     fgClass: "text-booking-activity-foreground",
   },
+  visa: {
+    icon: IdCard,
+    label: "Visa",
+    bgClass: "bg-booking-other",
+    fgClass: "text-booking-other-foreground",
+  },
+  document: {
+    icon: FileText,
+    label: "Document",
+    bgClass: "bg-booking-other",
+    fgClass: "text-booking-other-foreground",
+  },
   other: {
     icon: Ticket,
     label: "Other",
@@ -81,7 +95,7 @@ const bookingTypeConfig: Record<
   },
 };
 
-const bookingTypes: BookingType[] = ["flight", "hotel", "rail", "reservation", "activity", "other"];
+const bookingTypes: BookingType[] = ["flight", "hotel", "rail", "reservation", "activity", "visa", "document", "other"];
 
 const bookingFilterOptions: FilterOption[] = bookingTypes.map((t) => ({
   value: t,
