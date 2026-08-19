@@ -227,7 +227,7 @@ export function useSuggestions(tripId: string, city?: string) {
 
 export function useProposals(tripId: string, filters?: ProposalFilters) {
   return useQuery<Proposal[]>({
-    queryKey: ["proposals", tripId, filters?.status, filters?.category],
+    queryKey: ["proposals", tripId, filters?.status, filters?.category, filters?.sort],
     queryFn: () => proposalsApi.list(tripId, filters),
     enabled: !!tripId && !useMocks,
   });

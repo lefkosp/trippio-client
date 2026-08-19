@@ -5,10 +5,13 @@ import {
   Plus,
   ThumbsUp,
   ThumbsDown,
+  HelpCircle,
   Check,
   X,
   CalendarPlus,
+  MapPinPlus,
   ExternalLink,
+  Link2,
   Utensils,
   Zap,
   BedDouble,
@@ -39,6 +42,9 @@ import {
   useApproveProposal,
   useRejectProposal,
   useConvertProposal,
+  usePromoteProposal,
+  useLinkPreview,
+  useSetProposalPreview,
 } from "@/shared/hooks/mutations";
 import type { Proposal, ProposalCategory, ProposalStatus, Day } from "@/shared/types";
 import type { CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
@@ -113,17 +119,20 @@ function ProposalCard({
   isReadOnly,
   tripId,
   onConvert,
+  onPromote,
 }: {
   proposal: Proposal;
   currentUserId: string;
   isReadOnly: boolean;
   tripId: string;
   onConvert: (proposal: Proposal) => void;
+  onPromote: (proposal: Proposal) => void;
 }) {
   const catConfig = CATEGORY_CONFIG[proposal.category] ?? CATEGORY_CONFIG.other;
   const CatIcon = catConfig.icon;
 
   const yesVotes = proposal.votes.filter((v) => v.value === "yes").length;
+  const maybeVotes = proposal.votes.filter((v) => v.value === "maybe").length;
   const noVotes = proposal.votes.filter((v) => v.value === "no").length;
 
   const myVote = proposal.votes.find(
@@ -140,7 +149,7 @@ function ProposalCard({
   const isActioning =
     voteMutation.isPending || approveMutation.isPending || rejectMutation.isPending;
 
-  function handleVote(value: "yes" | "no") {
+  function handleVote(value: "yes" | "maybe" | "no") {
     voteMutation.mutate(
       { proposalId: proposal._id, value },
       {
@@ -166,14 +175,22 @@ function ProposalCard({
       <CardContent className="p-4 space-y-3">
         {/* Header row */}
         <div className="flex items-start gap-3">
-          <div
-            className={cn(
-              "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
-              catConfig.bgClass
-            )}
-          >
-            <CatIcon className={cn("h-4 w-4", catConfig.fgClass)} />
-          </div>
+          {proposal.imageUrl ? (
+            <img
+              src={proposal.imageUrl}
+              alt=""
+              className="h-9 w-9 rounded-lg object-cover shrink-0 bg-elev-2"
+            />
+          ) : (
+            <div
+              className={cn(
+                "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                catConfig.bgClass
+              )}
+            >
+              <CatIcon className={cn("h-4 w-4", catConfig.fgClass)} />
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-sm leading-tight">{proposal.title}</h3>
@@ -183,11 +200,15 @@ function ProposalCard({
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                     proposal.status === "approved"
                       ? "bg-emerald-500/15 text-emerald-400"
-                      : "bg-red-500/15 text-red-400"
+                      : proposal.status === "promoted"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-red-500/15 text-red-400"
                   )}
                 >
                   {proposal.status === "approved" ? (
                     <Check className="h-2.5 w-2.5" />
+                  ) : proposal.status === "promoted" ? (
+                    <MapPinPlus className="h-2.5 w-2.5" />
                   ) : (
                     <X className="h-2.5 w-2.5" />
                   )}
@@ -217,10 +238,29 @@ function ProposalCard({
           </p>
         )}
 
-        {/* Links */}
-        {proposal.links && proposal.links.length > 0 && (
+        {/* Links — proposal.url (from a pasted link) plus any extra links[] */}
+        {(proposal.url || (proposal.links && proposal.links.length > 0)) && (
           <div className="flex flex-wrap gap-2">
-            {proposal.links.map((link, i) => (
+            {proposal.url && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 text-[11px] border-primary/20 text-primary hover:bg-primary/10 px-2"
+                asChild
+              >
+                <a href={proposal.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-2.5 w-2.5 mr-1" />
+                  {(() => {
+                    try {
+                      return new URL(proposal.url).hostname;
+                    } catch {
+                      return "Link";
+                    }
+                  })()}
+                </a>
+              </Button>
+            )}
+            {proposal.links?.map((link, i) => (
               <Button
                 key={i}
                 variant="outline"
@@ -253,6 +293,10 @@ function ProposalCard({
               <ThumbsUp className="h-3.5 w-3.5" />
               {yesVotes}
             </span>
+            <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
+              <HelpCircle className="h-3.5 w-3.5" />
+              {maybeVotes}
+            </span>
             <span className="flex items-center gap-1 text-xs text-red-400 font-medium">
               <ThumbsDown className="h-3.5 w-3.5" />
               {noVotes}
@@ -280,7 +324,11 @@ function ProposalCard({
                 You voted{" "}
                 <span
                   className={
-                    myVote === "yes" ? "text-emerald-400 font-medium" : "text-red-400 font-medium"
+                    myVote === "yes"
+                      ? "text-emerald-400 font-medium"
+                      : myVote === "maybe"
+                        ? "text-amber-400 font-medium"
+                        : "text-red-400 font-medium"
                   }
                 >
                   {myVote}
@@ -303,6 +351,18 @@ function ProposalCard({
                 )}
               >
                 <ThumbsUp className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => handleVote("maybe")}
+                disabled={isActioning}
+                className={cn(
+                  "h-8 w-8 rounded-lg flex items-center justify-center transition-all press-scale",
+                  myVote === "maybe"
+                    ? "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40"
+                    : "bg-elev-2 text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10"
+                )}
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => handleVote("no")}
@@ -337,14 +397,23 @@ function ProposalCard({
           )}
 
           {!isReadOnly && proposal.status === "approved" && (
-            <Button
-              size="sm"
-              className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-              onClick={() => onConvert(proposal)}
-            >
-              <CalendarPlus className="h-3.5 w-3.5 mr-1" />
-              Add to itinerary
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onPromote(proposal)}
+                className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-[11px] font-medium bg-elev-2 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all press-scale"
+              >
+                <MapPinPlus className="h-3.5 w-3.5" />
+                Promote to place
+              </button>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+                onClick={() => onConvert(proposal)}
+              >
+                <CalendarPlus className="h-3.5 w-3.5 mr-1" />
+                Add to itinerary
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
@@ -667,6 +736,207 @@ function ConvertProposalSheet({
   );
 }
 
+// ─── PromoteToPlaceSheet ──────────────────────────────────────────────────────
+// The seam between Capture and Plan: turns a shortlisted proposal into a real
+// Place, which is what the day-planning screens (Phase 2) build on.
+
+function PromoteToPlaceSheet({
+  proposal,
+  open,
+  onOpenChange,
+  tripId,
+}: {
+  proposal: Proposal | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  tripId: string;
+}) {
+  const promoteMutation = usePromoteProposal(tripId);
+
+  const [address, setAddress] = useState("");
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setAddress("");
+      setName(proposal?.title ?? "");
+    }
+  }, [open, proposal]);
+
+  function reset() {
+    setAddress("");
+    setName(proposal?.title ?? "");
+  }
+
+  function handlePromote() {
+    if (!proposal || !address.trim()) return;
+    promoteMutation.mutate(
+      {
+        proposalId: proposal._id,
+        payload: {
+          address: address.trim(),
+          name: name.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Added to places");
+          reset();
+          onOpenChange(false);
+        },
+        onError: (e) => toast.error(e.message),
+      }
+    );
+  }
+
+  if (!proposal) return null;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+      >
+        <SheetHeader className="text-left pb-2">
+          <SheetTitle className="text-lg tracking-tight">Promote to place</SheetTitle>
+          <p className="text-sm text-muted-foreground leading-snug">{proposal.title}</p>
+        </SheetHeader>
+
+        <div className="space-y-4 pt-1 px-4 pb-6">
+          <div>
+            <label className="text-section-label mb-1.5 block">Name</label>
+            <Input
+              placeholder="Place name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={120}
+            />
+          </div>
+
+          <div>
+            <label className="text-section-label mb-1.5 block">Address</label>
+            <Input
+              placeholder="Street address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                reset();
+                onOpenChange(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handlePromote}
+              disabled={!address.trim() || promoteMutation.isPending}
+            >
+              {promoteMutation.isPending ? "Adding…" : "Add to places"}
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── QuickAddBar ──────────────────────────────────────────────────────────────
+// Paste-first capture: a bare url is enough — title/thumbnail get filled in by
+// the link-preview scrape once it resolves, or by editing the card later. This
+// is deliberately not a form; the whole point is beating the group chat on speed.
+
+function QuickAddBar({ tripId }: { tripId: string }) {
+  const [value, setValue] = useState("");
+  const createProposal = useCreateProposal(tripId);
+  const linkPreview = useLinkPreview();
+  const setPreview = useSetProposalPreview(tripId);
+
+  function looksLikeUrl(text: string): boolean {
+    try {
+      const parsed = new URL(text);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  async function handleFocus() {
+    if (value.trim()) return;
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (looksLikeUrl(clipboardText.trim())) {
+        setValue(clipboardText.trim());
+      }
+    } catch {
+      // Clipboard read denied or unsupported — silently do nothing, the user
+      // can still paste manually.
+    }
+  }
+
+  function handleAdd() {
+    const text = value.trim();
+    if (!text) return;
+    const isUrl = looksLikeUrl(text);
+    const payload = isUrl ? { url: text } : { title: text };
+
+    createProposal.mutate(payload, {
+      onSuccess: (proposal) => {
+        toast.success("Added to inbox");
+        setValue("");
+        if (isUrl) {
+          // Fire-and-forget: don't block the add on a scrape that might hang
+          // or fail (Instagram/TikTok block this routinely). The fallback
+          // hostname title already shows; this just upgrades it if it works.
+          linkPreview.mutate(text, {
+            onSuccess: (preview) => {
+              if (preview.title || preview.imageUrl) {
+                setPreview.mutate({
+                  proposalId: proposal._id,
+                  preview,
+                });
+              }
+            },
+          });
+        }
+      },
+      onError: (e) => toast.error(e.message),
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-border bg-elev-1 p-2">
+      <Link2 className="h-4 w-4 text-muted-foreground shrink-0 ml-1.5" />
+      <Input
+        placeholder="Paste a link or type an idea…"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onFocus={handleFocus}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleAdd();
+        }}
+        className="border-0 shadow-none h-9 focus-visible:ring-0 px-1"
+      />
+      <Button
+        size="sm"
+        className="h-9 bg-primary text-primary-foreground hover:bg-primary/90 press-scale shrink-0"
+        onClick={handleAdd}
+        disabled={!value.trim() || createProposal.isPending}
+      >
+        {createProposal.isPending ? "Adding…" : "Add"}
+      </Button>
+    </div>
+  );
+}
+
 // ─── ProposalsScreen ──────────────────────────────────────────────────────────
 
 type StatusTab = ProposalStatus;
@@ -684,6 +954,7 @@ function EmptyState({
     open: "No open proposals yet",
     approved: "No approved proposals",
     rejected: "No rejected proposals",
+    promoted: "Nothing promoted to places yet",
   };
 
   return (
@@ -714,13 +985,17 @@ export function ProposalsScreen() {
 
   const [activeStatus, setActiveStatus] = useState<StatusTab>("open");
   const [activeCategory, setActiveCategory] = useState<ProposalCategory | null>(null);
+  const [sortByVotes, setSortByVotes] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [convertProposal, setConvertProposal] = useState<Proposal | null>(null);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [promoteProposal, setPromoteProposal] = useState<Proposal | null>(null);
+  const [promoteOpen, setPromoteOpen] = useState(false);
 
   const { data: proposals, isLoading } = useProposals(tripId, {
     status: activeStatus,
     category: activeCategory ?? undefined,
+    sort: sortByVotes ? "votes" : undefined,
   });
   const { data: days = [] } = useDays(tripId);
 
@@ -729,6 +1004,11 @@ export function ProposalsScreen() {
   function handleConvert(proposal: Proposal) {
     setConvertProposal(proposal);
     setConvertOpen(true);
+  }
+
+  function handlePromote(proposal: Proposal) {
+    setPromoteProposal(proposal);
+    setPromoteOpen(true);
   }
 
   return (
@@ -748,6 +1028,9 @@ export function ProposalsScreen() {
         )}
       </div>
 
+      {/* Quick add — paste a link and it lands in the inbox immediately */}
+      {!isReadOnly && <QuickAddBar tripId={tripId} />}
+
       {/* Status tabs */}
       <Tabs
         value={activeStatus}
@@ -756,45 +1039,59 @@ export function ProposalsScreen() {
         <TabsList className="w-full">
           <TabsTrigger value="open" className="flex-1">Open</TabsTrigger>
           <TabsTrigger value="approved" className="flex-1">Approved</TabsTrigger>
+          <TabsTrigger value="promoted" className="flex-1">Promoted</TabsTrigger>
           <TabsTrigger value="rejected" className="flex-1">Rejected</TabsTrigger>
         </TabsList>
 
-        {/* Category filter chips */}
-        <div className="flex gap-1.5 flex-wrap pt-1">
+        {/* Category filter chips + sort */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              onClick={() => setActiveCategory(null)}
+              className={cn(
+                "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
+                !activeCategory
+                  ? "bg-primary/20 text-primary border-primary/40"
+                  : "bg-elev-2 text-muted-foreground border-transparent"
+              )}
+            >
+              All
+            </button>
+            {CATEGORIES.map((cat) => {
+              const cfg = CATEGORY_CONFIG[cat];
+              const Icon = cfg.icon;
+              const active = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(active ? null : cat)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
+                    active
+                      ? `${cfg.bgClass} ${cfg.fgClass} border-current`
+                      : "bg-elev-2 text-muted-foreground border-transparent"
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
           <button
-            onClick={() => setActiveCategory(null)}
+            onClick={() => setSortByVotes((v) => !v)}
             className={cn(
-              "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
-              !activeCategory
+              "shrink-0 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
+              sortByVotes
                 ? "bg-primary/20 text-primary border-primary/40"
                 : "bg-elev-2 text-muted-foreground border-transparent"
             )}
           >
-            All
+            {sortByVotes ? "Most liked" : "Recent"}
           </button>
-          {CATEGORIES.map((cat) => {
-            const cfg = CATEGORY_CONFIG[cat];
-            const Icon = cfg.icon;
-            const active = activeCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(active ? null : cat)}
-                className={cn(
-                  "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
-                  active
-                    ? `${cfg.bgClass} ${cfg.fgClass} border-current`
-                    : "bg-elev-2 text-muted-foreground border-transparent"
-                )}
-              >
-                <Icon className="h-3 w-3" />
-                {cfg.label}
-              </button>
-            );
-          })}
         </div>
 
-        {(["open", "approved", "rejected"] as StatusTab[]).map((status) => (
+        {(["open", "approved", "promoted", "rejected"] as StatusTab[]).map((status) => (
           <TabsContent key={status} value={status} className="mt-4">
             {isLoading ? (
               <div className="space-y-3">
@@ -812,6 +1109,7 @@ export function ProposalsScreen() {
                     isReadOnly={isReadOnly}
                     tripId={tripId}
                     onConvert={handleConvert}
+                    onPromote={handlePromote}
                   />
                 ))}
               </div>
@@ -841,6 +1139,12 @@ export function ProposalsScreen() {
         onOpenChange={setConvertOpen}
         tripId={tripId}
         days={days}
+      />
+      <PromoteToPlaceSheet
+        proposal={promoteProposal}
+        open={promoteOpen}
+        onOpenChange={setPromoteOpen}
+        tripId={tripId}
       />
     </div>
   );

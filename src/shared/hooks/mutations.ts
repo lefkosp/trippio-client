@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { tripsApi, eventsApi, placesApi, bookingsApi, proposalsApi } from "@/shared/api/client";
+import { tripsApi, eventsApi, placesApi, bookingsApi, proposalsApi, linkPreviewApi } from "@/shared/api/client";
 import type { Trip, TripEvent, Place, Booking } from "@/shared/types";
-import type { CreateTripPayload, CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
+import type {
+  CreateTripPayload,
+  CreateProposalPayload,
+  ConvertProposalPayload,
+  PromoteProposalPayload,
+  LinkPreview,
+} from "@/shared/api/client";
 
 // ─── Trips ───────────────────────────────────────────────────────────────────
 
@@ -128,7 +134,7 @@ export function useCreateProposal(tripId: string) {
 export function useVoteProposal(tripId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ proposalId, value }: { proposalId: string; value: "yes" | "no" }) =>
+    mutationFn: ({ proposalId, value }: { proposalId: string; value: "yes" | "maybe" | "no" }) =>
       proposalsApi.vote(proposalId, value),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
   });
@@ -161,6 +167,35 @@ export function useConvertProposal(tripId: string) {
         qc.invalidateQueries({ queryKey: ["events", _data.event.dayId] });
       }
     },
+  });
+}
+
+export function usePromoteProposal(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ proposalId, payload }: { proposalId: string; payload: PromoteProposalPayload }) =>
+      proposalsApi.promote(proposalId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["proposals", tripId] });
+      qc.invalidateQueries({ queryKey: ["places", tripId] });
+    },
+  });
+}
+
+// Not tied to a trip's query cache — a preview is a one-off lookup used while
+// composing a proposal, not itself cached app state.
+export function useLinkPreview() {
+  return useMutation({
+    mutationFn: (url: string) => linkPreviewApi.fetch(url),
+  });
+}
+
+export function useSetProposalPreview(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ proposalId, preview }: { proposalId: string; preview: LinkPreview }) =>
+      proposalsApi.setPreview(proposalId, preview),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
   });
 }
 

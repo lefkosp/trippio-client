@@ -126,11 +126,12 @@ export interface Booking {
 // ─── Proposal ────────────────────────────────────────────────────────────────
 
 export type ProposalCategory = "food" | "activity" | "stay" | "transport" | "other";
-export type ProposalStatus = "open" | "approved" | "rejected";
+export type ProposalStatus = "open" | "approved" | "rejected" | "promoted";
+export type ProposalSource = "instagram" | "tiktok" | "xhs" | "youtube" | "web" | "manual";
 
 export interface ProposalVote {
   userId: string | { _id: string; email: string };
-  value: "yes" | "no";
+  value: "yes" | "maybe" | "no";
   votedAt: string;
 }
 
@@ -140,6 +141,11 @@ export interface Proposal {
   title: string;
   description?: string;
   category: ProposalCategory;
+  url?: string;
+  imageUrl?: string;
+  source?: ProposalSource;
+  city?: string;
+  tags?: string[];
   suggestedDayId?: string;
   suggestedPlaceId?: string;
   links?: string[];
@@ -150,6 +156,9 @@ export interface Proposal {
   approvedAt?: string;
   rejectedBy?: string;
   rejectedAt?: string;
+  placeId?: string;
+  promotedBy?: string;
+  promotedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
