@@ -10,6 +10,7 @@ import {
   authApi,
   setApiAccessToken,
   setApiShareAccessToken,
+  NetworkError,
   type AuthUser,
 } from "@/shared/api/client";
 
@@ -25,6 +26,7 @@ export interface AuthState {
   shareAccessToken: string | null;
   isReadOnly: boolean;
   isLoading: boolean;
+  isOffline: boolean;
 }
 
 interface AuthContextValue extends AuthState {
@@ -38,15 +40,49 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Persisted so a reload while offline can still show who was signed in. Holds no
+ * token — only identity, so cached read-only content can render before the
+ * network is reachable again. */
+const CACHED_USER_KEY = "trippio.cachedUser.v1";
+
+function readCachedUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(CACHED_USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.id === "string" && typeof parsed.email === "string") {
+      return { id: parsed.id, email: parsed.email };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUser(user: AuthUser | null) {
+  try {
+    if (user) {
+      localStorage.setItem(CACHED_USER_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(CACHED_USER_KEY);
+    }
+  } catch {
+    // localStorage unavailable (private mode, quota) — offline identity cache is best-effort
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => readCachedUser());
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [share, setShare] = useState<ShareSession | null>(null);
   const [shareAccessToken, setShareAccessTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   const setSession = useCallback((u: AuthUser, token: string) => {
     setUser(u);
+    writeCachedUser(u);
+    setIsOffline(false);
     setAccessTokenState(token);
     setApiAccessToken(token);
     setShare(null);
@@ -73,17 +109,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await authApi.refresh();
       if (res.accessToken) {
+        setIsOffline(false);
         setAccessTokenState(res.accessToken);
         setApiAccessToken(res.accessToken);
         if (res.user) {
           setUser(res.user);
+          writeCachedUser(res.user);
         }
         return;
       }
-    } catch {
-      // no session or expired
+    } catch (err) {
+      if (err instanceof NetworkError) {
+        // Can't reach the server — keep whatever identity we have cached (if any)
+        // and let the app render read-only from cache instead of bouncing to /login.
+        setIsOffline(true);
+        setAccessTokenState(null);
+        setApiAccessToken(null);
+        return;
+      }
+      // Any other failure (401, etc.) means the session is genuinely gone.
     }
+    setIsOffline(false);
     setUser(null);
+    writeCachedUser(null);
     setAccessTokenState(null);
     setApiAccessToken(null);
   }, []);
@@ -109,13 +157,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authApi.logout();
     } finally {
       setUser(null);
+      writeCachedUser(null);
+      setIsOffline(false);
       setAccessTokenState(null);
       setApiAccessToken(null);
       clearShareSession();
     }
   }, [clearShareSession]);
 
-  const isReadOnly = !!shareAccessToken && !user;
+  // Offline counts as read-only for the same reason a share link does: no access
+  // token, so mutations would fail — reuse the read-only path instead of adding
+  // offline checks to every screen.
+  const isReadOnly = (!!shareAccessToken && !user) || isOffline;
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -125,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       shareAccessToken,
       isReadOnly,
       isLoading,
+      isOffline,
       requestLink,
       logout,
       refresh,
@@ -139,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       shareAccessToken,
       isReadOnly,
       isLoading,
+      isOffline,
       requestLink,
       logout,
       refresh,

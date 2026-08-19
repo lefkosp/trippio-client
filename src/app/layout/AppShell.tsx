@@ -14,7 +14,7 @@ const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 
 export function AppShell() {
   const navigate = useNavigate();
-  const { user, share, isReadOnly, isLoading: authLoading } = useAuth();
+  const { user, share, isReadOnly, isLoading: authLoading, isOffline } = useAuth();
   const isShareOnly = !user && !!share;
   const { data: trips, isLoading: tripsLoading, error: tripsError } = useTrips(!isShareOnly);
   const { data: sharedTrip, isLoading: sharedTripLoading, error: sharedTripError } = useTrip(
@@ -73,18 +73,23 @@ export function AppShell() {
     );
   }
 
-  // Error / no trips state
-  if (error || !activeTrip) {
+  // Error / no trips state — checked on activeTrip alone, not `error`: React
+  // Query keeps last-known-good data on a failed background refetch, so if we
+  // have cached trip data (e.g. offline after a previous visit) activeTrip is
+  // still set and we fall through to the main render below instead of here.
+  if (!activeTrip) {
     return (
       <div className="min-h-dvh bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-4 max-w-xs">
           <span className="trippio-wordmark text-lg block mb-4">Trippio</span>
           <p className="text-sm text-muted-foreground">
-            {error
-              ? "Could not open this trip. Check your connection to the Trippio server and make sure the link is valid."
-              : isReadOnly
-                ? "This shared trip is not available."
-                : "No trips found. Create one or seed the database with `npm run seed`."}
+            {isOffline
+              ? "You're offline and no trip is cached yet. Reconnect and try again."
+              : error
+                ? "Could not open this trip. Check your connection to the Trippio server and make sure the link is valid."
+                : isReadOnly
+                  ? "This shared trip is not available."
+                  : "No trips found. Create one or seed the database with `npm run seed`."}
           </p>
           <p className="text-xs text-muted-foreground/60">
             {error instanceof Error ? error.message : ""}
@@ -115,6 +120,11 @@ export function AppShell() {
     >
       <TripProvider trip={activeTrip}>
         <div className="min-h-dvh bg-background">
+          {isOffline && (
+            <div className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-medium text-center py-1.5 px-4">
+              Offline — showing cached data. Changes are disabled until you're back online.
+            </div>
+          )}
           <TopBar />
           <main className="max-w-md mx-auto px-4 pb-28 pt-6">
             <Outlet />

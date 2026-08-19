@@ -3,7 +3,7 @@
  * Uses credentials: include for refresh cookies; optional Bearer token for auth.
  */
 
-import type { Trip, TripPreferences, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus } from "@/shared/types";
+import type { Trip, TripPreferences, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus, ProposalSource } from "@/shared/types";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -27,6 +27,22 @@ interface ApiResponse<T> {
   error: null | { message: string; code?: string };
 }
 
+/** Thrown when the request never reached the server — no connectivity, DNS failure, etc. */
+export class NetworkError extends Error {
+  constructor(message = "Network request failed") {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
+/** Thrown on a 401 — the access/refresh token is missing, invalid, or expired. */
+export class AuthError extends Error {
+  constructor(message = "Not authenticated") {
+    super(message);
+    this.name = "AuthError";
+  }
+}
+
 async function request<T>(
   endpoint: string,
   options?: RequestInit
@@ -40,16 +56,25 @@ async function request<T>(
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  const response = await fetch(url, {
-    ...options,
-    credentials: "include",
-    headers,
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      credentials: "include",
+      headers,
+    });
+  } catch {
+    throw new NetworkError();
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({
       error: { message: `HTTP ${response.status}: ${response.statusText}` },
     }));
+    if (response.status === 401) {
+      throw new AuthError(errorData.error?.message);
+    }
     if (response.status === 403) {
       throw new Error("Access removed. You no longer have permission.");
     }
@@ -58,6 +83,9 @@ async function request<T>(
 
   const result: ApiResponse<T> = await response.json();
   if (result.error) {
+    if (response.status === 401) {
+      throw new AuthError(result.error.message);
+    }
     if (response.status === 403) {
       throw new Error("Access removed. You no longer have permission.");
     }
@@ -275,12 +303,17 @@ export const shareApi = {
 export interface ProposalFilters {
   status?: ProposalStatus;
   category?: ProposalCategory;
+  sort?: "votes";
 }
 
 export interface CreateProposalPayload {
-  title: string;
+  title?: string;
+  url?: string;
   description?: string;
-  category: ProposalCategory;
+  category?: ProposalCategory;
+  city?: string;
+  tags?: string[];
+  source?: ProposalSource;
   suggestedDayId?: string;
   suggestedPlaceId?: string;
   links?: string[];
@@ -293,11 +326,25 @@ export interface ConvertProposalPayload {
   eventType?: string;
 }
 
+export interface PromoteProposalPayload {
+  address: string;
+  lat?: number;
+  lng?: number;
+  name?: string;
+  notes?: string;
+}
+
+export interface LinkPreview {
+  title: string | null;
+  imageUrl: string | null;
+}
+
 export const proposalsApi = {
   list: (tripId: string, filters?: ProposalFilters): Promise<Proposal[]> => {
     const params = new URLSearchParams();
     if (filters?.status) params.set("status", filters.status);
     if (filters?.category) params.set("category", filters.category);
+    if (filters?.sort) params.set("sort", filters.sort);
     const qs = params.toString() ? `?${params.toString()}` : "";
     return request<{ proposals: Proposal[] }>(`/trips/${tripId}/proposals${qs}`)
       .then((res) => res.proposals);
@@ -307,7 +354,7 @@ export const proposalsApi = {
       method: "POST",
       body: JSON.stringify(data),
     }).then((res) => res.proposal),
-  vote: (proposalId: string, value: "yes" | "no"): Promise<Proposal> =>
+  vote: (proposalId: string, value: "yes" | "maybe" | "no"): Promise<Proposal> =>
     request<{ proposal: Proposal }>(`/proposals/${proposalId}/votes`, {
       method: "POST",
       body: JSON.stringify({ value }),
@@ -324,5 +371,23 @@ export const proposalsApi = {
     request<{ event: TripEvent; proposal: Proposal }>(`/proposals/${proposalId}/convert`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  promote: (proposalId: string, payload: PromoteProposalPayload): Promise<{ place: Place; proposal: Proposal }> =>
+    request<{ place: Place; proposal: Proposal }>(`/proposals/${proposalId}/promote`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  setPreview: (proposalId: string, preview: LinkPreview): Promise<Proposal> =>
+    request<{ proposal: Proposal }>(`/proposals/${proposalId}/preview`, {
+      method: "PATCH",
+      body: JSON.stringify(preview),
+    }).then((res) => res.proposal),
+};
+
+export const linkPreviewApi = {
+  fetch: (url: string): Promise<LinkPreview> =>
+    request<LinkPreview>("/link-preview", {
+      method: "POST",
+      body: JSON.stringify({ url }),
     }),
 };

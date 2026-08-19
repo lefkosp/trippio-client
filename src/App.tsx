@@ -1,5 +1,9 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistQueryClientRestore, persistQueryClientSave } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { get, set, del } from "idb-keyval";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { AppShell } from "@/app/layout/AppShell";
@@ -16,16 +20,72 @@ import { ProposalsScreen } from "@/features/proposals/ProposalsScreen";
 import { MoreScreen } from "@/features/more/MoreScreen";
 import { AccessScreen } from "@/features/share/AccessScreen";
 
+// gcTime must exceed the persister's maxAge below, or persisted entries older
+// than staleTime but younger than maxAge get garbage-collected before they're
+// ever read back from IndexedDB.
+const THIRTY_DAYS_MS = 1000 * 60 * 60 * 24 * 30;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: THIRTY_DAYS_MS,
       retry: 1,
     },
   },
 });
 
+// IndexedDB-backed persister so the trip (days/events/places/bookings/proposals)
+// survives a full reload with no network — the offline-auth path only helps if
+// there's cached data to render once the user is let past the auth gate.
+// (localStorage would also work but has a ~5MB ceiling shared with everything
+// else on the origin; IndexedDB doesn't.)
+const idbPersister = createAsyncStoragePersister({
+  storage: {
+    getItem: (key: string) => get(key),
+    setItem: (key: string, value: string) => set(key, value),
+    removeItem: (key: string) => del(key),
+  },
+});
+
+// Deliberately NOT using PersistQueryClientProvider's default behavior, which
+// writes the whole cache to storage on every query state change. Multiple
+// tabs (or even one tab's first paint, before a query has finished fetching)
+// can each write their own snapshot; whichever happens to write last wins,
+// and a transient/empty state can silently overwrite good cached data for
+// every future tab on this origin — reproduced during testing. Saving only
+// on visibilitychange/pagehide means we only ever persist a settled state,
+// at the moment the user actually stops looking at the tab.
+function usePersistQueryClientOnHide() {
+  useEffect(() => {
+    let cancelled = false;
+
+    persistQueryClientRestore({
+      queryClient,
+      persister: idbPersister,
+      maxAge: THIRTY_DAYS_MS,
+    });
+
+    const save = () => {
+      if (cancelled) return;
+      persistQueryClientSave({ queryClient, persister: idbPersister });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") save();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", save);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", save);
+    };
+  }, []);
+}
+
 function App() {
+  usePersistQueryClientOnHide();
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
