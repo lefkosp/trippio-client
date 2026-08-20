@@ -20,16 +20,22 @@ import { ProposalsScreen } from "@/features/proposals/ProposalsScreen";
 import { MoreScreen } from "@/features/more/MoreScreen";
 import { AccessScreen } from "@/features/share/AccessScreen";
 
-// gcTime must exceed the persister's maxAge below, or persisted entries older
-// than staleTime but younger than maxAge get garbage-collected before they're
-// ever read back from IndexedDB.
 const THIRTY_DAYS_MS = 1000 * 60 * 60 * 24 * 30;
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: THIRTY_DAYS_MS,
+      // Not THIRTY_DAYS_MS: React Query passes gcTime straight to
+      // setTimeout, whose delay is a 32-bit signed int (max ~24.8 days) —
+      // 30 days overflows it, and the browser fires the "timer" almost
+      // immediately instead of in 30 days, silently GC'ing every
+      // unobserved cached query within about a second of creation
+      // (reproduced live: a query set via setQueryData with no mounted
+      // useQuery observer vanished from the cache in under 2s). Infinity
+      // is treated as "never garbage-collect" by React Query, which is
+      // what "survives offline for a while" actually requires anyway.
+      gcTime: Infinity,
       retry: 1,
     },
   },
