@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreateTripWizard } from "./CreateTripWizard";
 import { useAuth } from "@/auth/useAuth";
 import { useTrip, useTrips } from "@/shared/hooks/queries";
+import { usePrefetchTripData } from "@/shared/hooks/usePrefetchTripData";
 import { TripProvider } from "@/shared/context/TripContext";
 import { TripSwitcherProvider } from "@/shared/context/TripSwitcherContext";
 
@@ -45,6 +46,8 @@ export function AppShell() {
     ? (sharedTrip ?? null)
     : (tripList.find((t) => t._id === selectedTripId) ?? tripList[0] ?? null);
   const error = isShareOnly ? sharedTripError : tripsError;
+
+  usePrefetchTripData(activeTrip?._id, !isOffline);
 
   if (authLoading) {
     return (

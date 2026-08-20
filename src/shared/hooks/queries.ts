@@ -18,7 +18,7 @@ const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Returns true when a transit object has at least one meaningful field. */
-function hasTransitContent(t?: Record<string, unknown>): boolean {
+export function hasTransitContent(t?: Record<string, unknown>): boolean {
   if (!t) return false;
   return !!(t.mode || t.from || t.to || t.instructions);
 }
