@@ -11,8 +11,31 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDays, useEventsWithPlaces, usePlaces } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
-import { mapLink } from "@/lib/mapLink";
+import { mapLink, wgs84ToGcj02 } from "@/lib/mapLink";
+import { useMapTileSource, type MapTileSource } from "@/lib/mapTileSource";
 import type { Day, Place } from "@/shared/types";
+
+const TILE_CONFIG: Record<MapTileSource, { url: string; subdomains: string; attribution: string }> = {
+  osm: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    // Explicit, not omitted: react-leaflet forwards every prop straight into
+    // Leaflet's options, so an omitted/undefined `subdomains` overwrites
+    // Leaflet's own internal default ('abc') with `undefined` instead of
+    // leaving it alone — reproduced live as a hard crash in `_getSubdomain`
+    // ("Cannot read properties of undefined (reading 'length')").
+    subdomains: "abc",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  },
+  amap: {
+    // Unofficial but widely-used public raster endpoint (no API key) — accessible
+    // from mainland China without a VPN, unlike OSM's tile CDN. Coordinates must
+    // be pre-shifted to GCJ-02 (see `displayPlaces` below) or every marker on
+    // these tiles lands 100-700m off.
+    url: "https://webrd0{s}.is.autonavi.com/appmaptile?lang=en&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+    subdomains: "1234",
+    attribution: "&copy; AutoNavi (高德地图)",
+  },
+};
 
 // Vite bundles these image imports to hashed URLs; Leaflet's default icon
 // otherwise references package-relative paths that don't resolve — the
@@ -71,10 +94,11 @@ function FitBounds({ places }: { places: Place[] }) {
   return null;
 }
 
-function LeafletMap({ places }: { places: Place[] }) {
+function LeafletMap({ places, tileSource }: { places: Place[]; tileSource: MapTileSource }) {
   const withCoords = places.filter((p) => p.lat && p.lng);
   // Default center: Beijing — arbitrary, only used before any marker exists.
   const fallbackCenter: [number, number] = [39.9042, 116.4074];
+  const tile = TILE_CONFIG[tileSource];
 
   return (
     <div className="rounded-xl overflow-hidden border border-border h-72">
@@ -85,8 +109,10 @@ function LeafletMap({ places }: { places: Place[] }) {
         className="h-full w-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={tileSource}
+          attribution={tile.attribution}
+          url={tile.url}
+          subdomains={tile.subdomains}
         />
         <FitBounds places={withCoords} />
         {withCoords.map((place) => (
@@ -132,10 +158,26 @@ export function MapScreen() {
     [dayEvents]
   );
 
+  const [tileSource, setTileSource] = useMapTileSource();
+
   const places = mode === "day" ? dayPlaces : (allPlaces ?? []);
   const placesLoading = mode === "day" ? dayEventsLoading : allPlacesLoading;
   const placesWithCoords = places.filter((p) => p.lat && p.lng);
   const placesMissingCoords = places.filter((p) => !p.lat || !p.lng);
+
+  // Amap tiles are drawn in GCJ-02 — shift marker positions to match so pins
+  // land on the right street instead of 100-700m off. Only affects what's
+  // rendered on the map; stored place coordinates stay WGS-84.
+  const mapDisplayPlaces = useMemo(
+    () =>
+      tileSource === "amap"
+        ? placesWithCoords.map((p) => {
+            const gcj = wgs84ToGcj02(p.lat!, p.lng!);
+            return { ...p, lat: gcj.lat, lng: gcj.lng };
+          })
+        : placesWithCoords,
+    [placesWithCoords, tileSource]
+  );
 
   if (daysLoading) {
     return (
@@ -182,11 +224,29 @@ export function MapScreen() {
         />
       )}
 
+      {/* Tile source — OSM works everywhere except mainland China; switch to
+          Amap once you're actually there. */}
+      <div className="flex items-center gap-1 rounded-full bg-elev-2 p-0.5 w-fit -mt-1">
+        {(["osm", "amap"] as MapTileSource[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setTileSource(s)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all press-scale ${
+              tileSource === s
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground"
+            }`}
+          >
+            {s === "osm" ? "OpenStreetMap" : "Amap (China)"}
+          </button>
+        ))}
+      </div>
+
       {/* Map */}
       {placesLoading ? (
         <Skeleton className="h-72 w-full rounded-xl" />
       ) : (
-        <LeafletMap places={placesWithCoords} />
+        <LeafletMap places={mapDisplayPlaces} tileSource={tileSource} />
       )}
       {placesMissingCoords.length > 0 && (
         <p className="text-xs text-muted-foreground/70 -mt-4">
