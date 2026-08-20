@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDays, useEventsWithPlaces, usePlaces } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
+import { mapLink } from "@/lib/mapLink";
 import type { Day, Place } from "@/shared/types";
 
 // Vite bundles these image imports to hashed URLs; Leaflet's default icon
@@ -207,38 +208,37 @@ export function MapScreen() {
             {mode === "day" ? "Places on this day" : `All places (${places.length})`}
           </h2>
           <div className="space-y-2">
-            {places.map((place) => (
-              <Card key={place._id}>
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <MapPin className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{place.name}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {place.address}
-                    </p>
-                  </div>
-                  {place.googleMapsUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs shrink-0 border-primary/20 text-primary hover:bg-primary/10"
-                      asChild
-                    >
-                      <a
-                        href={place.googleMapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+            {places.map((place) => {
+              const href = mapLink(place);
+              return (
+                <Card key={place._id}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <MapPin className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{place.name}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {place.address}
+                      </p>
+                    </div>
+                    {href && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs shrink-0 border-primary/20 text-primary hover:bg-primary/10"
+                        asChild
                       >
-                        <Navigation className="h-3 w-3 mr-1" />
-                        Maps
-                      </a>
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                        <a href={href} target="_blank" rel="noopener noreferrer">
+                          <Navigation className="h-3 w-3 mr-1" />
+                          Maps
+                        </a>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       ) : (

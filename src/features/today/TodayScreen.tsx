@@ -18,11 +18,13 @@ import { useTodayData, useProposals } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { eventTypeConfig } from "@/shared/utils/event-helpers";
 import { formatDate } from "@/lib/utils";
+import { mapLink } from "@/lib/mapLink";
 import type { TripEvent } from "@/shared/types";
 
 function NextUpCard({ event }: { event: TripEvent }) {
   const config = eventTypeConfig[event.type];
   const Icon = config.icon;
+  const placeMapLink = event.place ? mapLink(event.place) : null;
 
   return (
     <div className="card-hero rounded-xl p-5 space-y-4">
@@ -58,7 +60,7 @@ function NextUpCard({ event }: { event: TripEvent }) {
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="flex-1 truncate">{event.place.name}</span>
-            {event.place.googleMapsUrl && (
+            {placeMapLink && (
               <Button
                 variant="outline"
                 size="sm"
@@ -66,7 +68,7 @@ function NextUpCard({ event }: { event: TripEvent }) {
                 asChild
               >
                 <a
-                  href={event.place.googleMapsUrl}
+                  href={placeMapLink}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

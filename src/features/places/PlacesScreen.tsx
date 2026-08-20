@@ -33,6 +33,7 @@ import { usePlaces, useDays } from "@/shared/hooks/queries";
 import { useCreatePlace, useCreateEvent } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
+import { mapLink } from "@/lib/mapLink";
 import type { Place } from "@/shared/types";
 
 const tagConfig: Record<string, { bgClass: string; fgClass: string }> = {
@@ -59,6 +60,7 @@ function PlaceCard({
   onClick: () => void;
 }) {
   const tags = place.tags ?? [];
+  const href = mapLink(place);
 
   return (
     <Card className="press-scale cursor-pointer" onClick={onClick}>
@@ -74,7 +76,7 @@ function PlaceCard({
               {place.address}
             </p>
           </div>
-          {place.googleMapsUrl && (
+          {href && (
             <Button
               variant="ghost"
               size="icon"
@@ -82,11 +84,7 @@ function PlaceCard({
               asChild
               onClick={(e) => e.stopPropagation()}
             >
-              <a
-                href={place.googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={href} target="_blank" rel="noopener noreferrer">
                 <Navigation className="h-3.5 w-3.5" />
               </a>
             </Button>
@@ -155,6 +153,7 @@ function PlaceDetailSheet({
   if (!place) return null;
 
   const tags = place.tags ?? [];
+  const href = mapLink(place);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -225,20 +224,16 @@ function PlaceDetailSheet({
             </div>
           )}
 
-          {place.googleMapsUrl && (
+          {href && (
             <Button
               variant="outline"
               size="sm"
               className="w-full border-primary/20 text-primary hover:bg-primary/10"
               asChild
             >
-              <a
-                href={place.googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={href} target="_blank" rel="noopener noreferrer">
                 <Navigation className="h-4 w-4 mr-2" />
-                Open in Google Maps
+                Open in Maps
               </a>
             </Button>
           )}
@@ -513,10 +508,10 @@ function AddPlaceSheet({
           </div>
           <div>
             <label className="text-section-label mb-1.5 block">
-              Google Maps URL
+              Maps link <span className="text-muted-foreground/60">(optional override)</span>
             </label>
             <Input
-              placeholder="https://maps.google.com/..."
+              placeholder="Leave blank to open by address automatically"
               value={googleMapsUrl}
               onChange={(e) => setGoogleMapsUrl(e.target.value)}
             />

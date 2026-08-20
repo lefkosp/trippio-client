@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { eventTypeConfig, eventStatusConfig } from "@/shared/utils/event-helpers";
 import { useUpdateEvent, useDeleteEvent } from "@/shared/hooks/mutations";
+import { mapLink } from "@/lib/mapLink";
 import type { TripEvent, EventStatus } from "@/shared/types";
 import { useAuth } from "@/auth/useAuth";
 
@@ -40,6 +41,7 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
   const typeConfig = eventTypeConfig[event.type];
   const statusConfig = eventStatusConfig[event.status];
   const TypeIcon = typeConfig.icon;
+  const placeMapLink = event.place ? mapLink(event.place) : null;
 
   const handleStatusChange = (newStatus: EventStatus) => {
     updateEvent.mutate({ eventId: event._id, data: { status: newStatus } });
@@ -154,7 +156,7 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
                     </a>
                   </div>
                 )}
-                {event.place.googleMapsUrl && (
+                {placeMapLink && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -162,12 +164,12 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
                     asChild
                   >
                     <a
-                      href={event.place.googleMapsUrl}
+                      href={placeMapLink}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       <Navigation className="h-4 w-4 mr-2" />
-                      Open in Google Maps
+                      Open in Maps
                     </a>
                   </Button>
                 )}
