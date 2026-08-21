@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   Check,
   Copy,
+  Download,
   Link,
   LogOut,
   Plus,
   Share2,
   Trash2,
+  Upload,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,7 +36,7 @@ import { useTripContext } from "@/shared/context/useTripContext";
 import { useTripSwitcher } from "@/shared/context/TripSwitcherContext";
 import { useAuth } from "@/auth/useAuth";
 import { tripsApi } from "@/shared/api/client";
-import { useDeleteTrip } from "@/shared/hooks/mutations";
+import { useDeleteTrip, useImportTrip } from "@/shared/hooks/mutations";
 import { toast } from "sonner";
 
 export function TopBar() {
@@ -50,8 +52,11 @@ export function TopBar() {
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer");
   const [createWizardOpen, setCreateWizardOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const deleteTrip = useDeleteTrip();
+  const importTrip = useImportTrip();
 
   const canShowActions = !isReadOnly && !!user;
   const isOwner = !!user && !!trip && String(trip.createdBy) === String(user.id);
@@ -129,6 +134,60 @@ export function TopBar() {
 
   function openDeleteDialog() {
     setDeleteDialogOpen(true);
+  }
+
+  async function handleExportTrip() {
+    if (!trip) return;
+    setIsExporting(true);
+    try {
+      const data = await tripsApi.export(trip._id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const slug =
+        trip.name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "") || "trip";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}.trippio.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setSwitcherOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not export trip");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  function openImportPicker() {
+    setSwitcherOpen(false);
+    importFileInputRef.current?.click();
+  }
+
+  async function handleImportFileSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const newTrip = await importTrip.mutateAsync(parsed);
+      toast.success(`Imported "${newTrip.name}"`);
+      setSelectedTripId(newTrip._id);
+      navigate("/today");
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Could not import trip — is this a Trippio export file?",
+      );
+    }
   }
 
   async function handleConfirmDelete() {
@@ -252,6 +311,25 @@ export function TopBar() {
                     <Plus className="h-4 w-4 shrink-0" />
                     Create trip
                   </button>
+                  <button
+                    type="button"
+                    onClick={openImportPicker}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground hover:bg-elev-2 transition-colors"
+                  >
+                    <Upload className="h-4 w-4 shrink-0" />
+                    Import trip from file
+                  </button>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={handleExportTrip}
+                      disabled={isExporting}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground hover:bg-elev-2 transition-colors disabled:opacity-50"
+                    >
+                      <Download className="h-4 w-4 shrink-0" />
+                      {isExporting ? "Exporting…" : "Export trip to file"}
+                    </button>
+                  )}
                   {showDeleteTrip && (
                     <button
                       type="button"
@@ -276,6 +354,14 @@ export function TopBar() {
         open={createWizardOpen}
         onOpenChange={setCreateWizardOpen}
         onSuccess={handleCreateTripSuccess}
+      />
+
+      <input
+        ref={importFileInputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleImportFileSelected}
+        className="hidden"
       />
 
       {/* Delete trip confirmation */}

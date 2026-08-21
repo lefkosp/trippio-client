@@ -112,6 +112,15 @@ export interface ShareLinkResponse {
   revokedAt?: string;
 }
 
+/** Opaque on the client — read from `tripsApi.export`, handed unmodified to
+ * `tripsApi.import` (as a downloaded file round-tripped back in). The server
+ * owns the shape; the client only needs `version` for a quick sanity check
+ * before uploading a file that isn't a Trippio export at all. */
+export interface TripExport {
+  version: number;
+  [key: string]: unknown;
+}
+
 export interface CreateTripPayload {
   name: string;
   startDate: string;
@@ -125,6 +134,13 @@ export const tripsApi = {
   get: (tripId: string): Promise<Trip> => request<Trip>(`/trips/${tripId}`),
   create: (data: CreateTripPayload): Promise<Trip> =>
     request<Trip>("/trips", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  export: (tripId: string): Promise<TripExport> =>
+    request<TripExport>(`/trips/${tripId}/export`),
+  import: (data: TripExport): Promise<Trip> =>
+    request<Trip>("/trips/import", {
       method: "POST",
       body: JSON.stringify(data),
     }),

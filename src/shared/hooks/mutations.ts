@@ -7,6 +7,7 @@ import type {
   ConvertProposalPayload,
   PromoteProposalPayload,
   LinkPreview,
+  TripExport,
 } from "@/shared/api/client";
 
 // ─── Trips ───────────────────────────────────────────────────────────────────
@@ -15,6 +16,16 @@ export function useCreateTrip() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateTripPayload) => tripsApi.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["trips"] });
+    },
+  });
+}
+
+export function useImportTrip() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: TripExport) => tripsApi.import(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["trips"] });
     },
