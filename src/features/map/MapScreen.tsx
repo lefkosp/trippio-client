@@ -56,7 +56,7 @@ function DaySelector({
   onSelect: (dayId: string) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide scroll-fade-x">
       {days.map((day) => {
         const active = selectedDayId === day._id;
         return (

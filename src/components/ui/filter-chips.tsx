@@ -24,7 +24,7 @@ export function FilterChips({
   allLabel = "All",
 }: FilterChipsProps) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+    <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide scroll-fade-x">
       {/* "All" chip */}
       <button
         type="button"

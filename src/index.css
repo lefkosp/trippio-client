@@ -246,6 +246,14 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Fades the edges of a horizontally-scrolling row so a cut-off chip reads as
+     "more to scroll" instead of a hard, accidental-looking clip. No-op when
+     the row isn't overflowing — there's nothing at the edge to fade. */
+  .scroll-fade-x {
+    mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  }
 }
 
 /* ─── Typography utilities ─────────────────────────────────────────────────── */
