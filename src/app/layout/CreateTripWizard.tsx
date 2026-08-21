@@ -189,7 +189,7 @@ export function CreateTripWizard({
         className="max-h-[90dvh] rounded-t-2xl bg-elev-1 border-t border-border flex flex-col p-0 gap-0"
         showCloseButton={true}
       >
-        <SheetHeader className="px-4 pt-4 pb-2 shrink-0">
+        <SheetHeader className="px-4 pt-4 pb-2 pr-10 shrink-0">
           <div className="flex items-center justify-between gap-2">
             <SheetTitle className="text-lg tracking-tight">
               New trip
