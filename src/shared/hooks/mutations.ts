@@ -51,6 +51,15 @@ export function useDeleteTrip() {
   });
 }
 
+export function useCreateShareLink(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ role, expiresInDays }: { role: "viewer" | "editor"; expiresInDays?: number }) =>
+      tripsApi.createShareLink(tripId, role, expiresInDays),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["share-links", tripId] }),
+  });
+}
+
 export function useUpdateCollaboratorRole(tripId: string) {
   const qc = useQueryClient();
   return useMutation({

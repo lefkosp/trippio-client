@@ -6,6 +6,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTripContext } from "@/shared/context/useTripContext";
@@ -14,11 +24,11 @@ import {
   useShareLinks,
 } from "@/shared/hooks/queries";
 import {
+  useCreateShareLink,
   useUpdateCollaboratorRole,
   useRemoveCollaborator,
   useRevokeShareLink,
 } from "@/shared/hooks/mutations";
-import { tripsApi } from "@/shared/api/client";
 import { toast } from "sonner";
 
 export function AccessManagementSheet({
@@ -34,40 +44,39 @@ export function AccessManagementSheet({
   const { data: collaborators, isLoading: loadingCollabs } = useCollaborators(tripId);
   const { data: shareLinks, isLoading: loadingLinks } = useShareLinks(tripId);
 
+  const createLink = useCreateShareLink(tripId);
   const updateRole = useUpdateCollaboratorRole(tripId);
   const removeCollab = useRemoveCollaborator(tripId);
   const revokeLink = useRevokeShareLink(tripId);
 
-  const [isLoadingShareLink, setIsLoadingShareLink] = useState(false);
   const [activeTab, setActiveTab] = useState("links");
+  const [revokeLinkId, setRevokeLinkId] = useState<string | null>(null);
+  const [removeCollabId, setRemoveCollabId] = useState<string | null>(null);
 
   async function handleCreateLink(role: "viewer" | "editor") {
-    setIsLoadingShareLink(true);
     try {
-      const { url } = await tripsApi.createShareLink(tripId, role);
+      const { url } = await createLink.mutateAsync({ role });
       await navigator.clipboard.writeText(url);
       toast.success(`${role === "editor" ? "Editor" : "View-only"} link copied to clipboard`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create share link");
-    } finally {
-      setIsLoadingShareLink(false);
     }
   }
 
-  function handleRevoke(linkId: string) {
-    if (confirm("Are you sure you want to revoke this link?")) {
-      revokeLink.mutate(linkId, {
-        onSuccess: () => toast.success("Link revoked"),
-      });
-    }
+  function confirmRevoke() {
+    if (!revokeLinkId) return;
+    revokeLink.mutate(revokeLinkId, {
+      onSuccess: () => toast.success("Link revoked"),
+    });
+    setRevokeLinkId(null);
   }
 
-  function handleRemoveCollab(userId: string) {
-    if (confirm("Remove this collaborator? They will lose access immediately.")) {
-      removeCollab.mutate(userId, {
-        onSuccess: () => toast.success("Collaborator removed"),
-      });
-    }
+  function confirmRemoveCollab() {
+    if (!removeCollabId) return;
+    removeCollab.mutate(removeCollabId, {
+      onSuccess: () => toast.success("Collaborator removed"),
+    });
+    setRemoveCollabId(null);
   }
 
   function handleChangeRole(userId: string, newRole: "editor" | "viewer") {
@@ -77,7 +86,8 @@ export function AccessManagementSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
@@ -99,7 +109,7 @@ export function AccessManagementSheet({
                 <Button
                   variant="outline"
                   onClick={() => handleCreateLink("viewer")}
-                  disabled={isLoadingShareLink}
+                  disabled={createLink.isPending}
                   className="flex flex-col items-center py-6 h-auto"
                 >
                   <LinkIcon className="h-5 w-5 mb-2 text-muted-foreground" />
@@ -109,7 +119,7 @@ export function AccessManagementSheet({
                 <Button
                   variant="outline"
                   onClick={() => handleCreateLink("editor")}
-                  disabled={isLoadingShareLink}
+                  disabled={createLink.isPending}
                   className="flex flex-col items-center py-6 h-auto border-primary/20 hover:bg-primary/5"
                 >
                   <Shield className="h-5 w-5 mb-2 text-primary" />
@@ -159,7 +169,7 @@ export function AccessManagementSheet({
                             variant="ghost"
                             size="sm"
                             className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleRevoke(link.id)}
+                            onClick={() => setRevokeLinkId(link.id)}
                             disabled={revokeLink.isPending}
                           >
                             Revoke
@@ -210,7 +220,7 @@ export function AccessManagementSheet({
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                        onClick={() => handleRemoveCollab(c.userId)}
+                        onClick={() => setRemoveCollabId(c.userId)}
                         disabled={removeCollab.isPending}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -225,5 +235,48 @@ export function AccessManagementSheet({
         </div>
       </SheetContent>
     </Sheet>
+
+      <AlertDialog open={!!revokeLinkId} onOpenChange={(open) => !open && setRevokeLinkId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke this link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anyone with this link will lose access immediately. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRevoke}
+              disabled={revokeLink.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Revoke
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!removeCollabId} onOpenChange={(open) => !open && setRemoveCollabId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this collaborator?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They will lose access immediately. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveCollab}
+              disabled={removeCollab.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
