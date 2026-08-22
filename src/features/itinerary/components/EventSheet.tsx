@@ -55,8 +55,8 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border">
-        <SheetHeader className="text-left pb-2">
+      <SheetContent side="bottom" className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`badge-subtle ${typeConfig.bgClass} ${typeConfig.fgClass}`}>
               <TypeIcon className="h-3 w-3" />
@@ -75,7 +75,7 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
           <SheetTitle className="text-xl tracking-tight">{event.title}</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 pt-2 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-2 px-4 pb-6">
           {!isReadOnly && (
             <>
               {/* Status actions */}

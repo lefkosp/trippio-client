@@ -90,13 +90,13 @@ export function AccessManagementSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-xl tracking-tight">Sharing & Access</SheetTitle>
         </SheetHeader>
 
-        <div className="px-4 pb-6">
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-2 mb-4">
             <TabsTrigger value="links">Share Links</TabsTrigger>

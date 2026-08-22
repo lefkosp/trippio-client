@@ -91,13 +91,13 @@ export function AddEventSheet({ dayId, open, onOpenChange }: AddEventSheetProps)
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">Add Event</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           {/* Title */}
           <div>
             <label className="text-section-label mb-1.5 block">Title</label>
