@@ -21,7 +21,7 @@ export function AccessScreen() {
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pt-6">
         <Button
           variant="ghost"
           size="icon"

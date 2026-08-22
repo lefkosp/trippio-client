@@ -142,7 +142,7 @@ export function TodayScreen() {
 
   if (isLoading) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-5 pt-6">
         <div className="space-y-2">
           <Skeleton className="h-7 w-48" />
           <Skeleton className="h-4 w-32" />
@@ -157,7 +157,7 @@ export function TodayScreen() {
 
   if (!data || data.events.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pt-6">
         {openCount > 0 && (
           <Card className="bg-elev-1 border-border">
             <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -201,7 +201,7 @@ export function TodayScreen() {
   return (
     <div className="space-y-8">
       {/* Day header */}
-      <div className="space-y-1">
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-1">
         <h1 className="text-page-title">
           Day {day.dayNumber} — {day.city}
         </h1>

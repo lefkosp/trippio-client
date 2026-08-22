@@ -49,7 +49,7 @@ export function TopBar() {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [isLoadingShareLink, setIsLoadingShareLink] = useState(false);
-  const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer");
+  const [shareRole, setShareRole] = useState<"viewer" | "editor" | null>(null);
   const [createWizardOpen, setCreateWizardOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -71,7 +71,7 @@ export function TopBar() {
     setShareOpen(true);
     setShareUrl("");
     setCopied(false);
-    setShareRole("viewer");
+    setShareRole(null);
   }
 
   async function createShareLink(role: "viewer" | "editor") {
@@ -211,7 +211,7 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 glass border-b border-border">
+      <header className="shrink-0 glass border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-md mx-auto">
           {/* Left: Wordmark + trip selector */}
           <div className="flex items-center gap-3">

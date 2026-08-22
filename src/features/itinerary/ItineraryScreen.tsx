@@ -211,16 +211,18 @@ export function ItineraryScreen() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-page-title">Itinerary</h1>
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-4">
+        <h1 className="text-page-title">Itinerary</h1>
 
-      {/* City filter */}
-      {cityFilterOptions.length > 0 && (
-        <FilterChips
-          options={cityFilterOptions}
-          selected={activeCity}
-          onChange={setActiveCity}
-        />
-      )}
+        {/* City filter */}
+        {cityFilterOptions.length > 0 && (
+          <FilterChips
+            options={cityFilterOptions}
+            selected={activeCity}
+            onChange={setActiveCity}
+          />
+        )}
+      </div>
 
       {isLoading ? (
         <div className="space-y-2">
@@ -246,7 +248,7 @@ export function ItineraryScreen() {
           )}
         </div>
       ) : filteredDays && filteredDays.length > 0 ? (
-        <Card>
+        <Card key={activeCity ?? "all"} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           <CardContent className="p-2">
             {filteredDays.map((day, i) => (
               <div key={day._id}>

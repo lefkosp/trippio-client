@@ -234,9 +234,9 @@ function BookingDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <div className="flex items-center gap-2">
             <span className={`badge-subtle ${config.bgClass} ${config.fgClass}`}>
               <Icon className="h-3 w-3" />
@@ -248,7 +248,7 @@ function BookingDetailSheet({
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 pt-2 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-2 px-4 pb-6">
           {dateStr && (
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -401,15 +401,15 @@ function AddBookingSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">
             Add Booking
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           {/* Title */}
           <div>
             <label className="text-section-label mb-1.5 block">Title</label>
@@ -559,27 +559,29 @@ export function BookingsScreen() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-page-title">Bookings</h1>
-        {!isReadOnly && (
-          <Button
-            size="sm"
-            className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-            onClick={() => setAddOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
-        )}
-      </div>
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-page-title">Bookings</h1>
+          {!isReadOnly && (
+            <Button
+              size="sm"
+              className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          )}
+        </div>
 
-      {/* Type filter */}
-      <FilterChips
-        options={bookingFilterOptions}
-        selected={activeType}
-        onChange={setActiveType}
-      />
+        {/* Type filter */}
+        <FilterChips
+          options={bookingFilterOptions}
+          selected={activeType}
+          onChange={setActiveType}
+        />
+      </div>
 
       {/* List */}
       {isLoading ? (
@@ -589,7 +591,7 @@ export function BookingsScreen() {
           ))}
         </div>
       ) : filteredBookings && filteredBookings.length > 0 ? (
-        <div className="space-y-3">
+        <div key={activeType ?? "all"} className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           {filteredBookings.map((booking) => (
             <BookingCard
               key={booking._id}

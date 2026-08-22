@@ -122,14 +122,14 @@ export function AppShell() {
       setSelectedTripId={setSelectedTripId}
     >
       <TripProvider trip={activeTrip}>
-        <div className="min-h-dvh bg-background">
+        <div className="h-dvh bg-background flex flex-col overflow-hidden">
           {isOffline && (
-            <div className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-medium text-center py-1.5 px-4">
+            <div className="shrink-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-medium text-center py-1.5 px-4">
               Offline — showing cached data. Changes are disabled until you're back online.
             </div>
           )}
           <TopBar />
-          <main className="max-w-md mx-auto px-4 pb-28 pt-6">
+          <main className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-28">
             <Outlet />
           </main>
           <BottomNav />

@@ -159,9 +159,9 @@ function PlaceDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           {tags.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               {tags.map((tag) => {
@@ -185,7 +185,7 @@ function PlaceDetailSheet({
           )}
         </SheetHeader>
 
-        <div className="space-y-4 pt-2 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-2 px-4 pb-6">
           <div className="flex items-start gap-3">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
             <p className="text-sm">{place.address}</p>
@@ -309,14 +309,14 @@ function AssignToDaySheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[80dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">Assign to day</SheetTitle>
           <p className="text-sm text-muted-foreground leading-snug">{place.name}</p>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           {days.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No days yet — generate days from the Itinerary tab first.
@@ -430,13 +430,13 @@ function AddPlaceSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">Add Place</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-section-label mb-1.5 block">Name</label>
@@ -601,38 +601,40 @@ export function PlacesScreen() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-page-title">Places</h1>
-        {!isReadOnly && (
-          <Button
-            size="sm"
-            className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-            onClick={() => setAddOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Place
-          </Button>
-        )}
-      </div>
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-page-title">Places</h1>
+          {!isReadOnly && (
+            <Button
+              size="sm"
+              className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Place
+            </Button>
+          )}
+        </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search places..."
-          className="pl-9 bg-elev-1 border-border"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search places..."
+            className="pl-9 bg-elev-1 border-border"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Tag filter */}
+        <FilterChips
+          options={placeTagFilters}
+          selected={activeTag}
+          onChange={setActiveTag}
         />
       </div>
-
-      {/* Tag filter */}
-      <FilterChips
-        options={placeTagFilters}
-        selected={activeTag}
-        onChange={setActiveTag}
-      />
 
       {/* List */}
       {isLoading ? (
@@ -642,7 +644,7 @@ export function PlacesScreen() {
           ))}
         </div>
       ) : filteredPlaces && filteredPlaces.length > 0 ? (
-        <div className="space-y-3">
+        <div key={activeTag ?? "all"} className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           {filteredPlaces.map((place) => (
             <PlaceCard
               key={place._id}

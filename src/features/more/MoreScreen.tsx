@@ -12,7 +12,7 @@ export function MoreScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-6">
       <h1 className="text-page-title">More</h1>
 
       <div className="rounded-xl border border-border bg-elev-1 overflow-hidden">

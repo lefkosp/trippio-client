@@ -195,65 +195,67 @@ export function MapScreen() {
 
   return (
     <div className="space-y-6">
-      {/* Header + mode toggle */}
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-page-title">Map</h1>
-        <div className="flex items-center gap-1 rounded-full bg-elev-2 p-0.5 shrink-0">
-          {(["day", "all"] as MapMode[]).map((m) => (
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-4">
+        {/* Header + mode toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-page-title">Map</h1>
+          <div className="flex items-center gap-1 rounded-full bg-elev-2 p-0.5 shrink-0">
+            {(["day", "all"] as MapMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all press-scale ${
+                  mode === m
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {m === "day" ? "This day" : "All places"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Day selector — only relevant in "this day" mode */}
+        {mode === "day" && days && (
+          <DaySelector
+            days={days}
+            selectedDayId={effectiveDayId}
+            onSelect={setSelectedDayId}
+          />
+        )}
+
+        {/* Tile source — OSM works everywhere except mainland China; switch to
+            Amap once you're actually there. */}
+        <div className="flex items-center gap-1 rounded-full bg-elev-2 p-0.5 w-fit">
+          {(["osm", "amap"] as MapTileSource[]).map((s) => (
             <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all press-scale ${
-                mode === m
+              key={s}
+              onClick={() => setTileSource(s)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all press-scale ${
+                tileSource === s
                   ? "bg-primary/15 text-primary"
                   : "text-muted-foreground"
               }`}
             >
-              {m === "day" ? "This day" : "All places"}
+              {s === "osm" ? "OpenStreetMap" : "Amap (China)"}
             </button>
           ))}
         </div>
+
+        {/* Map */}
+        {placesLoading ? (
+          <Skeleton className="h-72 w-full rounded-xl" />
+        ) : (
+          <LeafletMap places={mapDisplayPlaces} tileSource={tileSource} />
+        )}
+        {placesMissingCoords.length > 0 && (
+          <p className="text-xs text-muted-foreground/70 -mt-2">
+            {placesMissingCoords.length} place{placesMissingCoords.length !== 1 ? "s" : ""} without
+            coordinates yet — they'll appear once geocoding resolves.
+          </p>
+        )}
       </div>
-
-      {/* Day selector — only relevant in "this day" mode */}
-      {mode === "day" && days && (
-        <DaySelector
-          days={days}
-          selectedDayId={effectiveDayId}
-          onSelect={setSelectedDayId}
-        />
-      )}
-
-      {/* Tile source — OSM works everywhere except mainland China; switch to
-          Amap once you're actually there. */}
-      <div className="flex items-center gap-1 rounded-full bg-elev-2 p-0.5 w-fit -mt-1">
-        {(["osm", "amap"] as MapTileSource[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => setTileSource(s)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-all press-scale ${
-              tileSource === s
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground"
-            }`}
-          >
-            {s === "osm" ? "OpenStreetMap" : "Amap (China)"}
-          </button>
-        ))}
-      </div>
-
-      {/* Map */}
-      {placesLoading ? (
-        <Skeleton className="h-72 w-full rounded-xl" />
-      ) : (
-        <LeafletMap places={mapDisplayPlaces} tileSource={tileSource} />
-      )}
-      {placesMissingCoords.length > 0 && (
-        <p className="text-xs text-muted-foreground/70 -mt-4">
-          {placesMissingCoords.length} place{placesMissingCoords.length !== 1 ? "s" : ""} without
-          coordinates yet — they'll appear once geocoding resolves.
-        </p>
-      )}
 
       {/* Place list */}
       {placesLoading ? (
@@ -267,7 +269,10 @@ export function MapScreen() {
           <h2 className="text-section-label">
             {mode === "day" ? "Places on this day" : `All places (${places.length})`}
           </h2>
-          <div className="space-y-2">
+          <div
+            key={`${mode}-${effectiveDayId}`}
+            className="space-y-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+          >
             {places.map((place) => {
               const href = mapLink(place);
               return (

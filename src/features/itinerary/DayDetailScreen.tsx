@@ -137,8 +137,7 @@ export function DayDetailScreen() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50">
         <button
           onClick={() => navigate("/itinerary")}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 press-scale transition-colors"
@@ -162,7 +161,7 @@ export function DayDetailScreen() {
 
       {/* Timeline */}
       {events && events.length > 0 ? (
-        <div className="space-y-0">
+        <div className="space-y-0 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           {events.map((event) => (
             <EventCard
               key={event._id}

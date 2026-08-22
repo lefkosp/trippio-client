@@ -473,13 +473,13 @@ function CreateProposalSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[90dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[90dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">New Proposal</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           {/* Title */}
           <div>
             <label className="text-section-label mb-1.5 block">Title</label>
@@ -659,14 +659,14 @@ function ConvertProposalSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[80dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">Add to itinerary</SheetTitle>
           <p className="text-sm text-muted-foreground leading-snug">{proposal.title}</p>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           {/* Day select */}
           <div>
             <label className="text-section-label mb-1.5 block">Day</label>
@@ -795,14 +795,14 @@ function PromoteToPlaceSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl bg-elev-1 border-t border-border"
+        className="max-h-[80dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
-        <SheetHeader className="text-left pb-2">
+        <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">Promote to place</SheetTitle>
           <p className="text-sm text-muted-foreground leading-snug">{proposal.title}</p>
         </SheetHeader>
 
-        <div className="space-y-4 pt-1 px-4 pb-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           <div>
             <label className="text-section-label mb-1.5 block">Name</label>
             <Input
@@ -1013,82 +1013,84 @@ export function ProposalsScreen() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-page-title">Proposals</h1>
-        {!isReadOnly && (
-          <Button
-            size="sm"
-            className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
-        )}
-      </div>
-
-      {/* Quick add — paste a link and it lands in the inbox immediately */}
-      {!isReadOnly && <QuickAddBar tripId={tripId} />}
-
-      {/* Status tabs */}
       <Tabs
         value={activeStatus}
         onValueChange={(v) => setActiveStatus(v as StatusTab)}
       >
-        <TabsList className="w-full">
-          <TabsTrigger value="open" className="flex-1">Open</TabsTrigger>
-          <TabsTrigger value="approved" className="flex-1">Approved</TabsTrigger>
-          <TabsTrigger value="promoted" className="flex-1">Promoted</TabsTrigger>
-          <TabsTrigger value="rejected" className="flex-1">Rejected</TabsTrigger>
-        </TabsList>
+        <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-page-title">Proposals</h1>
+            {!isReadOnly && (
+              <Button
+                size="sm"
+                className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
 
-        {/* Category filter chips + sort */}
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <div className="flex gap-1.5 flex-wrap">
+          {/* Quick add — paste a link and it lands in the inbox immediately */}
+          {!isReadOnly && <QuickAddBar tripId={tripId} />}
+
+          {/* Status tabs */}
+          <TabsList className="w-full">
+            <TabsTrigger value="open" className="flex-1">Open</TabsTrigger>
+            <TabsTrigger value="approved" className="flex-1">Approved</TabsTrigger>
+            <TabsTrigger value="promoted" className="flex-1">Promoted</TabsTrigger>
+            <TabsTrigger value="rejected" className="flex-1">Rejected</TabsTrigger>
+          </TabsList>
+
+          {/* Category filter chips + sort */}
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <div className="flex gap-1.5 flex-wrap">
+              <button
+                onClick={() => setActiveCategory(null)}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
+                  !activeCategory
+                    ? "bg-primary/20 text-primary border-primary/40"
+                    : "bg-elev-2 text-muted-foreground border-transparent"
+                )}
+              >
+                All
+              </button>
+              {CATEGORIES.map((cat) => {
+                const cfg = CATEGORY_CONFIG[cat];
+                const Icon = cfg.icon;
+                const active = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(active ? null : cat)}
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
+                      active
+                        ? `${cfg.bgClass} ${cfg.fgClass} border-current`
+                        : "bg-elev-2 text-muted-foreground border-transparent"
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
             <button
-              onClick={() => setActiveCategory(null)}
+              onClick={() => setSortByVotes((v) => !v)}
               className={cn(
-                "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
-                !activeCategory
+                "shrink-0 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
+                sortByVotes
                   ? "bg-primary/20 text-primary border-primary/40"
                   : "bg-elev-2 text-muted-foreground border-transparent"
               )}
             >
-              All
+              {sortByVotes ? "Most liked" : "Recent"}
             </button>
-            {CATEGORIES.map((cat) => {
-              const cfg = CATEGORY_CONFIG[cat];
-              const Icon = cfg.icon;
-              const active = activeCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(active ? null : cat)}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
-                    active
-                      ? `${cfg.bgClass} ${cfg.fgClass} border-current`
-                      : "bg-elev-2 text-muted-foreground border-transparent"
-                  )}
-                >
-                  <Icon className="h-3 w-3" />
-                  {cfg.label}
-                </button>
-              );
-            })}
           </div>
-          <button
-            onClick={() => setSortByVotes((v) => !v)}
-            className={cn(
-              "shrink-0 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-all press-scale border",
-              sortByVotes
-                ? "bg-primary/20 text-primary border-primary/40"
-                : "bg-elev-2 text-muted-foreground border-transparent"
-            )}
-          >
-            {sortByVotes ? "Most liked" : "Recent"}
-          </button>
         </div>
 
         {(["open", "approved", "promoted", "rejected"] as StatusTab[]).map((status) => (
@@ -1100,7 +1102,10 @@ export function ProposalsScreen() {
                 ))}
               </div>
             ) : filtered.length > 0 ? (
-              <div className="space-y-3">
+              <div
+                key={`${activeCategory ?? "all"}-${sortByVotes}`}
+                className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+              >
                 {filtered.map((proposal) => (
                   <ProposalCard
                     key={proposal._id}
