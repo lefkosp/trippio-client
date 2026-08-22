@@ -359,6 +359,13 @@
     background: rgba(18, 22, 31, 0.55);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
+    /* Chrome on Android has a known bug where backdrop-filter on a
+       position:fixed element silently no-ops (background shows, blur
+       doesn't) unless the element is forced onto its own compositing
+       layer — promote it explicitly rather than hoping Chrome does it
+       on its own. */
+    transform: translateZ(0);
+    will-change: backdrop-filter;
   }
 
   /* One-shot highlight for newly added event (e.g. from proposal convert) */

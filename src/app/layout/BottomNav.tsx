@@ -43,7 +43,7 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 safe-area-bottom pointer-events-none">
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-8 safe-area-bottom pointer-events-none">
       <div
         className="pointer-events-auto flex items-center justify-around w-full max-w-sm gap-1 rounded-full glass-float border border-border/60 px-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]"
         style={{ height: "60px" }}
