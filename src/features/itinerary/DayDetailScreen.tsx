@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Plus, PackageOpen, Lightbulb, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, PackageOpen, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -73,17 +73,31 @@ export function DayDetailScreen() {
 
   // Same query cache useDay() already reads from — no extra fetch — used
   // here to build the same city → colour assignment ItineraryScreen uses,
-  // so a city's badge is the same colour everywhere it appears.
+  // so a city's badge is the same colour everywhere it appears, and to
+  // find this day's neighbours for the prev/next day buttons.
   const { data: days } = useDays(tripId);
   const cityColors = useMemo(
     () => buildCityColorMap(days?.map((d) => d.city) ?? []),
     [days]
   );
+  const dayIndex = days?.findIndex((d) => d._id === dayId) ?? -1;
+  const prevDay = dayIndex > 0 ? days?.[dayIndex - 1] : undefined;
+  const nextDay =
+    dayIndex >= 0 && days && dayIndex < days.length - 1 ? days[dayIndex + 1] : undefined;
 
   const [selectedEvent, setSelectedEvent] = useState<TripEvent | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [addingSuggestionId, setAddingSuggestionId] = useState<string | null>(null);
+
+  // The route doesn't remount when flipping to a neighbouring day (same
+  // element, just a new :dayId param), so any sheet left open would keep
+  // showing an event from the day we just navigated away from.
+  useEffect(() => {
+    setSheetOpen(false);
+    setSelectedEvent(null);
+    setAddSheetOpen(false);
+  }, [dayId]);
 
   const handleEventClick = (event: TripEvent) => {
     setSelectedEvent(event);
@@ -144,13 +158,33 @@ export function DayDetailScreen() {
   return (
     <div className="space-y-6">
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50">
-        <button
-          onClick={() => navigate("/itinerary")}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 press-scale transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Itinerary
-        </button>
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => navigate("/itinerary")}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground press-scale transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Itinerary
+          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => prevDay && navigate(`/itinerary/${prevDay._id}`)}
+              disabled={!prevDay}
+              aria-label="Previous day"
+              className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-elev-2 disabled:opacity-30 disabled:pointer-events-none press-scale transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => nextDay && navigate(`/itinerary/${nextDay._id}`)}
+              disabled={!nextDay}
+              aria-label="Next day"
+              className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-elev-2 disabled:opacity-30 disabled:pointer-events-none press-scale transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-2.5 mb-1">
           <h1 className="text-page-title">Day {day.dayNumber}</h1>
           {cityConfig && (
