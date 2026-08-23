@@ -44,6 +44,9 @@ export function EventCard({ event, onClick, highlightEventId }: EventCardProps) 
           {event.status === "done" && (
             <span className="badge-subtle bg-success text-success-foreground">Done</span>
           )}
+          {event.status === "skipped" && (
+            <span className="badge-subtle bg-elev-2 text-muted-foreground">Skipped</span>
+          )}
         </div>
 
         {event.startTime && (

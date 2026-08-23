@@ -90,6 +90,12 @@ export function DayDetailScreen() {
     setSheetOpen(true);
   };
 
+  // Re-derive from the live query result so the sheet reflects mutations
+  // (status changes, edits) made while it's open, instead of the stale
+  // snapshot captured at the moment the card was clicked.
+  const liveSelectedEvent =
+    events?.find((e) => e._id === selectedEvent?._id) ?? selectedEvent;
+
   const handleAddFromSuggestion = (suggestion: Suggestion) => {
     setAddingSuggestionId(suggestion._id);
     createEvent.mutate(
@@ -229,7 +235,7 @@ export function DayDetailScreen() {
 
       {/* Event detail sheet */}
       <EventSheet
-        event={selectedEvent}
+        event={liveSelectedEvent}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         dayId={dayId ?? ""}
