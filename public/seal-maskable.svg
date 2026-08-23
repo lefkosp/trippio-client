@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Trippio">
+  <title>Trippio</title>
+  <rect width="512" height="512" fill="#C0362C"/>
+  <g transform="translate(256 256) scale(0.66) translate(-256 -256)">
+    <rect x="56" y="56" width="400" height="400" rx="30" fill="none" stroke="#F4EFE6" stroke-width="14"/>
+    <path fill="#F4EFE6" d="M112 110h288v80H290v162h78v50H144v-50h78V190H112z"/>
+  </g>
+</svg>
