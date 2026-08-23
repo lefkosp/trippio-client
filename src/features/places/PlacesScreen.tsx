@@ -15,6 +15,8 @@ import {
   CalendarClock,
   CalendarPlus,
   Pencil,
+  Sparkles,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,11 +33,17 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { usePlaces, useDays } from "@/shared/hooks/queries";
-import { useCreatePlace, useUpdatePlace, useCreateEvent } from "@/shared/hooks/mutations";
+import {
+  useCreatePlace,
+  useUpdatePlace,
+  useCreateEvent,
+  useEnrichPlace,
+} from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import { mapLink } from "@/lib/mapLink";
 import type { Place } from "@/shared/types";
+import type { PlaceEnrichment } from "@/shared/api/client";
 
 const tagConfig: Record<string, { bgClass: string; fgClass: string }> = {
   food: { bgClass: "bg-event-food", fgClass: "text-event-food-foreground" },
@@ -371,6 +379,146 @@ function AssignToDaySheet({
   );
 }
 
+// ─── EnrichmentPanel ────────────────────────────────────────────────────────
+// Claude's suggested Place details. Purely presentational — the parent owns the
+// form state and decides what "apply" means, so nothing here can touch a field
+// the user hasn't explicitly accepted.
+
+interface EnrichmentRow {
+  key: string;
+  label: string;
+  display: string;
+}
+
+/** Skips every field that came back null — null means "not confirmed", not "empty". */
+function buildEnrichmentRows(fields: PlaceEnrichment["fields"]): EnrichmentRow[] {
+  const rows: EnrichmentRow[] = [];
+  if (fields.name) rows.push({ key: "name", label: "English name", display: fields.name });
+  if (fields.nameZh) rows.push({ key: "nameZh", label: "Chinese name", display: fields.nameZh });
+  if (fields.metroLine)
+    rows.push({ key: "metroLine", label: "Metro line", display: fields.metroLine });
+  if (fields.metroStation)
+    rows.push({ key: "metroStation", label: "Metro station", display: fields.metroStation });
+  // The day count is meaningless on its own, so the flag and the window are one
+  // row that applies together.
+  if (fields.requiresAdvanceBooking !== null) {
+    const days = fields.bookingWindowDays;
+    rows.push({
+      key: "booking",
+      label: "Advance booking",
+      display: fields.requiresAdvanceBooking
+        ? days != null
+          ? `Yes, ${days} days ahead`
+          : "Yes"
+        : "Not required",
+    });
+  }
+  return rows;
+}
+
+function hostOf(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function EnrichmentPanel({
+  enrichment,
+  rows,
+  appliedKeys,
+  onApply,
+  onApplyAll,
+  onDismiss,
+}: {
+  enrichment: PlaceEnrichment;
+  rows: EnrichmentRow[];
+  appliedKeys: Set<string>;
+  onApply: (key: string) => void;
+  onApplyAll: () => void;
+  onDismiss: () => void;
+}) {
+  const allApplied = rows.length > 0 && rows.every((r) => appliedKeys.has(r.key));
+
+  return (
+    <div className="rounded-md border border-border bg-elev-2 p-3 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-section-label">Suggestions</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 -mr-1 text-muted-foreground"
+          onClick={onDismiss}
+        >
+          <X className="size-3.5" />
+        </Button>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground leading-snug">
+          Nothing could be confirmed for this place.
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {rows.map((row) => {
+            const applied = appliedKeys.has(row.key);
+            return (
+              <div key={row.key} className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground shrink-0 w-28">{row.label}</span>
+                <span className="flex-1 min-w-0 truncate">{row.display}</span>
+                <Button
+                  variant={applied ? "ghost" : "outline"}
+                  size="sm"
+                  className="h-7 px-2 text-xs shrink-0"
+                  disabled={applied}
+                  onClick={() => onApply(row.key)}
+                >
+                  {applied ? "Applied" : "Use"}
+                </Button>
+              </div>
+            );
+          })}
+          {rows.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-7 text-xs mt-1"
+              disabled={allApplied}
+              onClick={onApplyAll}
+            >
+              {allApplied ? "All applied" : "Apply all"}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {enrichment.note && (
+        <p className="text-xs text-muted-foreground leading-snug">{enrichment.note}</p>
+      )}
+
+      {enrichment.sources.length > 0 && (
+        <p className="text-xs text-muted-foreground leading-snug">
+          Verify before saving ·{" "}
+          {enrichment.sources.map((s, i) => (
+            <span key={s.url}>
+              {i > 0 && ", "}
+              <a
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                {hostOf(s.url)}
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── AddPlaceSheet ──────────────────────────────────────────────────────────
 
 function AddPlaceSheet({
@@ -386,6 +534,7 @@ function AddPlaceSheet({
   const { tripId } = useTripContext();
   const createPlace = useCreatePlace(tripId);
   const updatePlace = useUpdatePlace(tripId);
+  const enrichPlace = useEnrichPlace(tripId);
   const isEditing = Boolean(editingPlace);
   const saveMutation = isEditing ? updatePlace : createPlace;
 
@@ -400,6 +549,13 @@ function AddPlaceSheet({
   const [requiresAdvanceBooking, setRequiresAdvanceBooking] = useState(false);
   const [bookingWindowDays, setBookingWindowDays] = useState("");
   const [notes, setNotes] = useState("");
+  const [enrichment, setEnrichment] = useState<PlaceEnrichment | null>(null);
+  const [appliedKeys, setAppliedKeys] = useState<Set<string>>(new Set());
+
+  const enrichmentRows = useMemo(
+    () => (enrichment ? buildEnrichmentRows(enrichment.fields) : []),
+    [enrichment]
+  );
 
   function reset() {
     setName("");
@@ -413,12 +569,18 @@ function AddPlaceSheet({
     setRequiresAdvanceBooking(false);
     setBookingWindowDays("");
     setNotes("");
+    setEnrichment(null);
+    setAppliedKeys(new Set());
   }
 
   // Seed the form from the place being edited only when the sheet opens,
   // so it doesn't clobber in-progress edits on unrelated re-renders.
   useEffect(() => {
     if (!open) return;
+    // Clear on both branches below — otherwise suggestions from a previous
+    // place leak into the next sheet that opens.
+    setEnrichment(null);
+    setAppliedKeys(new Set());
     if (editingPlace) {
       setName(editingPlace.name ?? "");
       setNameZh(editingPlace.nameZh ?? "");
@@ -437,6 +599,38 @@ function AddPlaceSheet({
       reset();
     }
   }, [open, editingPlace]);
+
+  function handleLookup() {
+    if (!name.trim()) return;
+    enrichPlace.mutate(
+      { name: name.trim(), address: address.trim() || undefined },
+      {
+        onSuccess: (data) => {
+          setEnrichment(data);
+          setAppliedKeys(new Set());
+        },
+        onError: (e) => toast.error(e.message),
+      }
+    );
+  }
+
+  function applyField(key: string) {
+    const f = enrichment?.fields;
+    if (!f) return;
+    if (key === "name" && f.name) setName(f.name);
+    if (key === "nameZh" && f.nameZh) setNameZh(f.nameZh);
+    if (key === "metroLine" && f.metroLine) setMetroLine(f.metroLine);
+    if (key === "metroStation" && f.metroStation) setMetroStation(f.metroStation);
+    if (key === "booking" && f.requiresAdvanceBooking !== null) {
+      setRequiresAdvanceBooking(f.requiresAdvanceBooking);
+      setBookingWindowDays(f.bookingWindowDays != null ? String(f.bookingWindowDays) : "");
+    }
+    setAppliedKeys((prev) => new Set(prev).add(key));
+  }
+
+  function applyAllFields() {
+    enrichmentRows.forEach((row) => applyField(row.key));
+  }
 
   function handleSave() {
     if (!name.trim()) return;
@@ -484,6 +678,28 @@ function AddPlaceSheet({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleLookup}
+            disabled={!name.trim() || enrichPlace.isPending}
+          >
+            <Sparkles className="size-4 mr-1.5" />
+            {enrichPlace.isPending ? "Looking up…" : "Look up China details"}
+          </Button>
+
+          {enrichment && (
+            <EnrichmentPanel
+              enrichment={enrichment}
+              rows={enrichmentRows}
+              appliedKeys={appliedKeys}
+              onApply={applyField}
+              onApplyAll={applyAllFields}
+              onDismiss={() => setEnrichment(null)}
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-section-label mb-1.5 block">Name</label>

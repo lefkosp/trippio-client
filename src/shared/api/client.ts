@@ -219,6 +219,20 @@ export const eventsApi = {
 
 // ─── Places ─────────────────────────────────────────────────────────────────
 
+/** Claude-suggested Place details. Every field is nullable — null means "not confirmed". */
+export interface PlaceEnrichment {
+  fields: {
+    name: string | null;
+    nameZh: string | null;
+    metroStation: string | null;
+    metroLine: string | null;
+    requiresAdvanceBooking: boolean | null;
+    bookingWindowDays: number | null;
+  };
+  note: string | null;
+  sources: { title: string; url: string }[];
+}
+
 export const placesApi = {
   list: (tripId: string, query?: string): Promise<Place[]> => {
     const params = query ? `?query=${encodeURIComponent(query)}` : "";
@@ -234,6 +248,14 @@ export const placesApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  enrich: (
+    tripId: string,
+    data: { name: string; address?: string }
+  ): Promise<PlaceEnrichment> =>
+    request<{ enrichment: PlaceEnrichment }>(`/trips/${tripId}/places/enrich`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).then((res) => res.enrichment),
 };
 
 // ─── Bookings ───────────────────────────────────────────────────────────────
@@ -354,6 +376,8 @@ export interface ConvertProposalPayload {
   startTime?: string;
   endTime?: string;
   eventType?: string;
+  /** When set, replaces this event in place instead of creating a new one alongside it. */
+  replaceEventId?: string;
 }
 
 export interface PromoteProposalPayload {
@@ -367,6 +391,16 @@ export interface PromoteProposalPayload {
 export interface LinkPreview {
   title: string | null;
   imageUrl: string | null;
+}
+
+export interface ScheduleSuggestion {
+  dayId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reasoning: string;
+  conflict: boolean;
+  conflictingEvent?: { id: string; title: string };
 }
 
 export const proposalsApi = {
@@ -402,6 +436,10 @@ export const proposalsApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  suggestSlot: (proposalId: string): Promise<ScheduleSuggestion> =>
+    request<{ suggestion: ScheduleSuggestion }>(`/proposals/${proposalId}/suggest-slot`, {
+      method: "POST",
+    }).then((res) => res.suggestion),
   promote: (proposalId: string, payload: PromoteProposalPayload): Promise<{ place: Place; proposal: Proposal; event?: TripEvent }> =>
     request<{ place: Place; proposal: Proposal; event?: TripEvent }>(`/proposals/${proposalId}/promote`, {
       method: "POST",

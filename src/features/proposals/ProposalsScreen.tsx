@@ -14,6 +14,8 @@ import {
   Link2,
   Pencil,
   Repeat2,
+  Sparkles,
+  TriangleAlert,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,9 +44,10 @@ import {
   usePromoteProposal,
   useLinkPreview,
   useSetProposalPreview,
+  useSuggestProposalSlot,
 } from "@/shared/hooks/mutations";
 import type { Proposal, ProposalCategory, ProposalStatus, Day } from "@/shared/types";
-import type { CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
+import type { CreateProposalPayload, ConvertProposalPayload, ScheduleSuggestion } from "@/shared/api/client";
 import { CATEGORY_CONFIG, CATEGORIES } from "@/shared/utils/proposal-helpers";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -586,16 +589,21 @@ function ConvertProposalSheet({
 }) {
   const navigate = useNavigate();
   const convertMutation = useConvertProposal(tripId);
+  const suggestMutation = useSuggestProposalSlot();
 
   const [dayId, setDayId] = useState(proposal?.suggestedDayId ?? "");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [suggestion, setSuggestion] = useState<ScheduleSuggestion | null>(null);
+  const [replaceConflict, setReplaceConflict] = useState(false);
 
   useEffect(() => {
     if (open) {
       setDayId(proposal?.suggestedDayId ?? "");
       setStartTime("");
       setEndTime("");
+      setSuggestion(null);
+      setReplaceConflict(false);
     }
   }, [open, proposal]);
 
@@ -603,7 +611,33 @@ function ConvertProposalSheet({
     setDayId(proposal?.suggestedDayId ?? "");
     setStartTime("");
     setEndTime("");
+    setSuggestion(null);
+    setReplaceConflict(false);
   }
+
+  function handleSuggest() {
+    if (!proposal) return;
+    suggestMutation.mutate(proposal._id, {
+      onSuccess: (data) => {
+        setSuggestion(data);
+        setDayId(data.dayId);
+        setStartTime(data.startTime);
+        setEndTime(data.endTime);
+        setReplaceConflict(false);
+      },
+      onError: (e) => toast.error(e.message),
+    });
+  }
+
+  // Only offer to replace the conflicting event while the form still matches
+  // the exact slot the conflict was computed against — editing the day/time
+  // away from that suggestion invalidates which event would be replaced.
+  const canReplaceConflict =
+    suggestion != null &&
+    suggestion.conflict &&
+    suggestion.dayId === dayId &&
+    suggestion.startTime === startTime &&
+    suggestion.endTime === endTime;
 
   function handleConvert() {
     if (!proposal || !dayId) return;
@@ -611,13 +645,19 @@ function ConvertProposalSheet({
       dayId,
       startTime: startTime || undefined,
       endTime: endTime || undefined,
+      replaceEventId:
+        canReplaceConflict && replaceConflict ? suggestion?.conflictingEvent?.id : undefined,
     };
     convertMutation.mutate(
       { proposalId: proposal._id, payload },
       {
         onSuccess: (data) => {
           const day = days.find((d) => d._id === dayId);
-          toast.success(`Added to Day ${day?.dayNumber ?? ""}`);
+          toast.success(
+            payload.replaceEventId
+              ? `Replaced on Day ${day?.dayNumber ?? ""}`
+              : `Added to Day ${day?.dayNumber ?? ""}`
+          );
           reset();
           onOpenChange(false);
           navigate(`/itinerary/${dayId}`, {
@@ -643,6 +683,50 @@ function ConvertProposalSheet({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
+          {/* AI suggestion */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleSuggest}
+            disabled={suggestMutation.isPending}
+          >
+            <Sparkles className="size-4 mr-1.5" />
+            {suggestMutation.isPending ? "Thinking…" : "Suggest slot with Claude"}
+          </Button>
+
+          {suggestion && (
+            <div
+              className={cn(
+                "rounded-md border p-3 text-sm space-y-1.5",
+                suggestion.conflict
+                  ? "border-destructive/40 bg-destructive/5"
+                  : "border-border bg-elev-2"
+              )}
+            >
+              {suggestion.conflict && (
+                <div className="flex items-center gap-1.5 text-destructive font-medium">
+                  <TriangleAlert className="size-4 shrink-0" />
+                  Overlaps “{suggestion.conflictingEvent?.title}”
+                </div>
+              )}
+              <p className="text-muted-foreground leading-snug">{suggestion.reasoning}</p>
+              {canReplaceConflict && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={replaceConflict ? "destructive" : "outline"}
+                  className="w-full mt-1"
+                  onClick={() => setReplaceConflict((v) => !v)}
+                >
+                  {replaceConflict
+                    ? `✓ Will replace “${suggestion.conflictingEvent?.title}”`
+                    : `Replace “${suggestion.conflictingEvent?.title}” instead of adding both`}
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Day select */}
           <div>
             <label className="text-section-label mb-1.5 block">Day</label>

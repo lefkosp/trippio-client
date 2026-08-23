@@ -162,6 +162,15 @@ export function useUpdatePlace(tripId: string) {
   });
 }
 
+// Suggestion only — nothing is persisted, the result just populates local form
+// state, so there's no cache to invalidate.
+export function useEnrichPlace(tripId: string) {
+  return useMutation({
+    mutationFn: (data: { name: string; address?: string }) =>
+      placesApi.enrich(tripId, data),
+  });
+}
+
 // ─── Proposals ───────────────────────────────────────────────────────────────
 
 export function useCreateProposal(tripId: string) {
@@ -213,6 +222,12 @@ export function useConvertProposal(tripId: string) {
         qc.invalidateQueries({ queryKey: ["events", _data.event.dayId] });
       }
     },
+  });
+}
+
+export function useSuggestProposalSlot() {
+  return useMutation({
+    mutationFn: (proposalId: string) => proposalsApi.suggestSlot(proposalId),
   });
 }
 
