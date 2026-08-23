@@ -3,7 +3,7 @@
  * Uses credentials: include for refresh cookies; optional Bearer token for auth.
  */
 
-import type { Trip, TripPreferences, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus, ProposalSource } from "@/shared/types";
+import type { Trip, TripPreferences, Day, TripEvent, Place, Booking, Suggestion, Proposal, ProposalCategory, ProposalStatus, ProposalSource, ProposalType, EditableEventChanges } from "@/shared/types";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -344,6 +344,9 @@ export interface CreateProposalPayload {
   suggestedDayId?: string;
   suggestedPlaceId?: string;
   links?: string[];
+  type?: ProposalType;
+  targetEventId?: string;
+  changes?: EditableEventChanges;
 }
 
 export interface ConvertProposalPayload {
@@ -386,10 +389,10 @@ export const proposalsApi = {
       method: "POST",
       body: JSON.stringify({ value }),
     }).then((res) => res.proposal),
-  approve: (proposalId: string): Promise<Proposal> =>
-    request<{ proposal: Proposal }>(`/proposals/${proposalId}/approve`, {
+  approve: (proposalId: string): Promise<{ proposal: Proposal; event?: TripEvent }> =>
+    request<{ proposal: Proposal; event?: TripEvent }>(`/proposals/${proposalId}/approve`, {
       method: "POST",
-    }).then((res) => res.proposal),
+    }),
   reject: (proposalId: string): Promise<Proposal> =>
     request<{ proposal: Proposal }>(`/proposals/${proposalId}/reject`, {
       method: "POST",
@@ -399,8 +402,8 @@ export const proposalsApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  promote: (proposalId: string, payload: PromoteProposalPayload): Promise<{ place: Place; proposal: Proposal }> =>
-    request<{ place: Place; proposal: Proposal }>(`/proposals/${proposalId}/promote`, {
+  promote: (proposalId: string, payload: PromoteProposalPayload): Promise<{ place: Place; proposal: Proposal; event?: TripEvent }> =>
+    request<{ place: Place; proposal: Proposal; event?: TripEvent }>(`/proposals/${proposalId}/promote`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),

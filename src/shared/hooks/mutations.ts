@@ -185,7 +185,12 @@ export function useApproveProposal(tripId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (proposalId: string) => proposalsApi.approve(proposalId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["proposals", tripId] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["proposals", tripId] });
+      if (data?.event?.dayId) {
+        qc.invalidateQueries({ queryKey: ["events", data.event.dayId] });
+      }
+    },
   });
 }
 
@@ -216,9 +221,12 @@ export function usePromoteProposal(tripId: string) {
   return useMutation({
     mutationFn: ({ proposalId, payload }: { proposalId: string; payload: PromoteProposalPayload }) =>
       proposalsApi.promote(proposalId, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["proposals", tripId] });
       qc.invalidateQueries({ queryKey: ["places", tripId] });
+      if (data?.event?.dayId) {
+        qc.invalidateQueries({ queryKey: ["events", data.event.dayId] });
+      }
     },
   });
 }

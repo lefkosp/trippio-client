@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   MapPin,
   Clock,
@@ -9,6 +10,9 @@ import {
   SkipForward,
   RotateCcw,
   Trash2,
+  Pencil,
+  Repeat2,
+  History,
 } from "lucide-react";
 import {
   Sheet,
@@ -21,8 +25,11 @@ import { Separator } from "@/components/ui/separator";
 import { eventTypeConfig, eventStatusConfig } from "@/shared/utils/event-helpers";
 import { useUpdateEvent, useDeleteEvent } from "@/shared/hooks/mutations";
 import { mapLink } from "@/lib/mapLink";
+import { formatDate } from "@/lib/utils";
 import type { TripEvent, EventStatus } from "@/shared/types";
 import { useAuth } from "@/auth/useAuth";
+import { EditEventProposalSheet } from "./EditEventProposalSheet";
+import { ReplaceEventProposalSheet } from "./ReplaceEventProposalSheet";
 
 interface EventSheetProps {
   event: TripEvent | null;
@@ -35,6 +42,8 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
   const { isReadOnly } = useAuth();
   const updateEvent = useUpdateEvent(dayId);
   const deleteEvent = useDeleteEvent(dayId);
+  const [editOpen, setEditOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
 
   if (!event) return null;
 
@@ -54,6 +63,7 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border">
         <SheetHeader className="text-left pb-2 shrink-0">
@@ -262,10 +272,55 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
             </>
           )}
 
+          {/* History — edits/replaces applied via a proposal */}
+          {event.history && event.history.length > 0 && (
+            <>
+              <Separator className="bg-border" />
+              <div className="space-y-1.5">
+                <p className="text-section-label">History</p>
+                {event.history.map((entry, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <History className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      {entry.summary || (entry.type === "replace" ? "Replaced" : "Edited")}
+                      {entry.changedAt && (
+                        <span className="text-muted-foreground/60">
+                          {" "}
+                          · {formatDate(entry.changedAt, { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {!isReadOnly && (
             <>
-              {/* Delete */}
+              {/* Manage — edit/replace go through a proposal so the change is
+                  a record the group can see, applied now or after a vote. */}
               <Separator className="bg-border" />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-8 text-xs border-border text-muted-foreground hover:bg-elev-2 press-scale"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-8 text-xs border-border text-muted-foreground hover:bg-elev-2 press-scale"
+                  onClick={() => setReplaceOpen(true)}
+                >
+                  <Repeat2 className="h-3.5 w-3.5 mr-1" />
+                  Replace
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -281,5 +336,17 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
         </div>
       </SheetContent>
     </Sheet>
+
+    <EditEventProposalSheet
+      event={event}
+      open={editOpen}
+      onOpenChange={setEditOpen}
+    />
+    <ReplaceEventProposalSheet
+      event={event}
+      open={replaceOpen}
+      onOpenChange={setReplaceOpen}
+    />
+    </>
   );
 }

@@ -12,11 +12,8 @@ import {
   MapPinPlus,
   ExternalLink,
   Link2,
-  Utensils,
-  Zap,
-  BedDouble,
-  Bus,
-  MoreHorizontal,
+  Pencil,
+  Repeat2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,46 +45,7 @@ import {
 } from "@/shared/hooks/mutations";
 import type { Proposal, ProposalCategory, ProposalStatus, Day } from "@/shared/types";
 import type { CreateProposalPayload, ConvertProposalPayload } from "@/shared/api/client";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const CATEGORY_CONFIG: Record<
-  ProposalCategory,
-  { label: string; icon: React.ElementType; bgClass: string; fgClass: string }
-> = {
-  food: {
-    label: "Food",
-    icon: Utensils,
-    bgClass: "bg-booking-activity",
-    fgClass: "text-booking-activity-foreground",
-  },
-  activity: {
-    label: "Activity",
-    icon: Zap,
-    bgClass: "bg-booking-train",
-    fgClass: "text-booking-train-foreground",
-  },
-  stay: {
-    label: "Stay",
-    icon: BedDouble,
-    bgClass: "bg-booking-hotel",
-    fgClass: "text-booking-hotel-foreground",
-  },
-  transport: {
-    label: "Transport",
-    icon: Bus,
-    bgClass: "bg-booking-flight",
-    fgClass: "text-booking-flight-foreground",
-  },
-  other: {
-    label: "Other",
-    icon: MoreHorizontal,
-    bgClass: "bg-booking-other",
-    fgClass: "text-booking-other-foreground",
-  },
-};
-
-const CATEGORIES: ProposalCategory[] = ["food", "activity", "stay", "transport", "other"];
+import { CATEGORY_CONFIG, CATEGORIES } from "@/shared/utils/proposal-helpers";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -194,6 +152,18 @@ function ProposalCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-sm leading-tight">{proposal.title}</h3>
+              {proposal.type === "edit" && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-sky-500/15 text-sky-400">
+                  <Pencil className="h-2.5 w-2.5" />
+                  Edit
+                </span>
+              )}
+              {proposal.type === "replace" && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-violet-500/15 text-violet-400">
+                  <Repeat2 className="h-2.5 w-2.5" />
+                  Replace
+                </span>
+              )}
               {proposal.status !== "open" && (
                 <span
                   className={cn(
@@ -396,23 +366,29 @@ function ProposalCard({
             </div>
           )}
 
-          {!isReadOnly && proposal.status === "approved" && (
+          {/* Edit proposals apply the moment they're approved — nothing left
+              to do here. Replace still needs a place (promote); it never
+              goes through convert since it's swapping an existing event,
+              not creating a new one. */}
+          {!isReadOnly && proposal.status === "approved" && proposal.type !== "edit" && (
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => onPromote(proposal)}
                 className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-[11px] font-medium bg-elev-2 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all press-scale"
               >
                 <MapPinPlus className="h-3.5 w-3.5" />
-                Promote to place
+                {proposal.type === "replace" ? "Apply replacement" : "Promote to place"}
               </button>
-              <Button
-                size="sm"
-                className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-                onClick={() => onConvert(proposal)}
-              >
-                <CalendarPlus className="h-3.5 w-3.5 mr-1" />
-                Add to itinerary
-              </Button>
+              {proposal.type !== "replace" && (
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+                  onClick={() => onConvert(proposal)}
+                >
+                  <CalendarPlus className="h-3.5 w-3.5 mr-1" />
+                  Add to itinerary
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -780,7 +756,7 @@ function PromoteToPlaceSheet({
       },
       {
         onSuccess: () => {
-          toast.success("Added to places");
+          toast.success(proposal.type === "replace" ? "Replaced" : "Added to places");
           reset();
           onOpenChange(false);
         },
@@ -798,7 +774,9 @@ function PromoteToPlaceSheet({
         className="max-h-[80dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
         <SheetHeader className="text-left pb-2 shrink-0">
-          <SheetTitle className="text-lg tracking-tight">Promote to place</SheetTitle>
+          <SheetTitle className="text-lg tracking-tight">
+            {proposal.type === "replace" ? "Apply replacement" : "Promote to place"}
+          </SheetTitle>
           <p className="text-sm text-muted-foreground leading-snug">{proposal.title}</p>
         </SheetHeader>
 

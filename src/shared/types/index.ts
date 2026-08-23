@@ -88,6 +88,14 @@ export interface TransitInfo {
   links?: string[];      // e.g. Navitime route link
 }
 
+export interface EventHistoryEntry {
+  type: "edit" | "replace";
+  proposalId?: string;
+  changedBy?: string;
+  changedAt?: string;
+  summary?: string;
+}
+
 export interface TripEvent {
   _id: string;
   tripId: string;
@@ -105,6 +113,7 @@ export interface TripEvent {
   notes?: string;      // kept optional for resilience
   source?: string;     // e.g. "proposal" when created from a proposal
   proposalId?: string;
+  history?: EventHistoryEntry[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -133,6 +142,19 @@ export interface Booking {
 export type ProposalCategory = "food" | "activity" | "stay" | "transport" | "other";
 export type ProposalStatus = "open" | "approved" | "rejected" | "promoted";
 export type ProposalSource = "instagram" | "tiktok" | "xhs" | "youtube" | "web" | "manual";
+export type ProposalType = "idea" | "edit" | "replace";
+
+// The allowlisted subset of Event fields an 'edit' proposal may patch — kept
+// in sync with EDITABLE_EVENT_FIELDS in trippio-server's proposal.service.js.
+export interface EditableEventChanges {
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  dayId?: string;
+  notes?: string;
+  links?: string[];
+  type?: EventType;
+}
 
 export interface ProposalVote {
   userId: string | { _id: string; email: string };
@@ -146,6 +168,9 @@ export interface Proposal {
   title: string;
   description?: string;
   category: ProposalCategory;
+  type?: ProposalType;
+  targetEventId?: string;
+  changes?: EditableEventChanges;
   url?: string;
   imageUrl?: string;
   source?: ProposalSource;
