@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   authApi,
   setApiAccessToken,
@@ -72,6 +73,7 @@ function writeCachedUser(user: AuthUser | null) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(() => readCachedUser());
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [share, setShare] = useState<ShareSession | null>(null);
@@ -79,7 +81,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
+  // Query keys like ["trips", ...] carry no per-user identifier, and queries
+  // never expire (gcTime: Infinity, for offline support) — so without this,
+  // signing in as a different person in the same tab (or restoring the
+  // IndexedDB-persisted cache on a shared device) renders the previous
+  // person's cached trips until something happens to refetch them. Wipe the
+  // cache whenever the authenticated identity actually changes; skip it for
+  // same-user token refreshes so the offline cache they're there for survives.
+  const clearCacheIfIdentityChanged = useCallback(
+    (newUser: AuthUser | null) => {
+      const previous = readCachedUser();
+      if (previous?.id !== (newUser?.id ?? null)) {
+        queryClient.clear();
+      }
+    },
+    [queryClient]
+  );
+
   const setSession = useCallback((u: AuthUser, token: string) => {
+    clearCacheIfIdentityChanged(u);
     setUser(u);
     writeCachedUser(u);
     setIsOffline(false);
@@ -88,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setShare(null);
     setShareAccessTokenState(null);
     setApiShareAccessToken(null);
-  }, []);
+  }, [clearCacheIfIdentityChanged]);
 
   const setShareSession = useCallback(
     ({ tripId, role, token }: { tripId: string; role: "viewer"; token: string }) => {
@@ -113,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessTokenState(res.accessToken);
         setApiAccessToken(res.accessToken);
         if (res.user) {
+          clearCacheIfIdentityChanged(res.user);
           setUser(res.user);
           writeCachedUser(res.user);
         }
@@ -134,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeCachedUser(null);
     setAccessTokenState(null);
     setApiAccessToken(null);
-  }, []);
+  }, [clearCacheIfIdentityChanged]);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } finally {
+      clearCacheIfIdentityChanged(null);
       setUser(null);
       writeCachedUser(null);
       setIsOffline(false);
@@ -163,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setApiAccessToken(null);
       clearShareSession();
     }
-  }, [clearShareSession]);
+  }, [clearShareSession, clearCacheIfIdentityChanged]);
 
   // Offline counts as read-only for the same reason a share link does: no access
   // token, so mutations would fail — reuse the read-only path instead of adding
