@@ -1,24 +1,20 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  CalendarDays,
-  Map,
-  Sun,
-  Lightbulb,
-  MoreHorizontal,
-} from "lucide-react";
+import { CalendarDays, Map, Sun, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useProposals } from "@/shared/hooks/queries";
 
+// Four tabs, no "More". A fifth tab that is only a menu is what a scaffold
+// produces when the information architecture wasn't decided — and it buried
+// Bookings, the thing you need in a hurry at an airport, two taps deep.
+// Places, Bookings and Sharing are trip-level, so they live in the trip sheet
+// behind the trip name in the top bar, next to the trip cover.
 const tabs = [
   { path: "/today", label: "Today", icon: Sun },
-  { path: "/itinerary", label: "Itinerary", icon: CalendarDays },
-  { path: "/proposals", label: "Proposals", icon: Lightbulb },
+  { path: "/itinerary", label: "Days", icon: CalendarDays },
   { path: "/map", label: "Map", icon: Map },
-  { path: "/more", label: "More", icon: MoreHorizontal },
+  { path: "/proposals", label: "Ideas", icon: Lightbulb },
 ] as const;
-
-const moreTabPaths = ["/more", "/places", "/bookings", "/access"];
 
 export function BottomNav() {
   const location = useLocation();
@@ -34,20 +30,20 @@ export function BottomNav() {
     if (path === "/proposals") {
       return location.pathname.startsWith("/proposals");
     }
-    if (path === "/more") {
-      return moreTabPaths.some(
-        (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
-      );
-    }
     return location.pathname === path;
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-8 safe-area-bottom pointer-events-none">
-      <div
-        className="pointer-events-auto flex items-center justify-around w-full max-w-sm gap-1 rounded-full glass-float border border-border/60 px-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]"
-        style={{ height: "60px" }}
-      >
+    // A flush, opaque bar rather than a floating translucent pill. The pill sat
+    // on top of live content at 55% opacity, so card text on Places and
+    // Bookings read straight through the navigation — the blur was doing
+    // aesthetic work at the cost of legibility on the densest screens. The
+    // active tab is marked by a seal rule on the top edge, like a signage tab.
+    <nav className="fixed inset-x-0 bottom-0 z-50">
+      {/* Background on the inner column, not the full-width nav: otherwise a
+          desktop gets an elevated strip running edge to edge behind a 448px
+          app. */}
+      <div className="max-w-md mx-auto flex items-stretch justify-around px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-elev-1 border-t border-border md:border-x">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = isActive(tab.path);
@@ -55,19 +51,21 @@ export function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-h-[44px] rounded-xl transition-all duration-200 press-scale",
+                "relative flex flex-col items-center justify-center gap-1 flex-1 pt-3 pb-1.5 min-h-[52px] transition-colors duration-200 press-scale",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
-              {/* Active pill glow */}
               {active && (
-                <div className="absolute inset-x-2 -top-px h-0.5 rounded-full bg-primary/80" />
+                <span
+                  className="absolute inset-x-3 top-0 h-0.5 bg-primary"
+                  aria-hidden="true"
+                />
               )}
               <div
                 className={cn(
-                  "relative flex items-center justify-center w-10 h-7 rounded-lg transition-colors duration-200",
-                  active && "bg-accent",
+                  "relative flex items-center justify-center w-10 h-6 transition-colors duration-200",
                 )}
               >
                 <Icon
@@ -87,8 +85,8 @@ export function BottomNav() {
               </div>
               <span
                 className={cn(
-                  "text-[10px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground",
+                  "text-[10px] transition-colors",
+                  active ? "text-primary font-semibold" : "text-muted-foreground font-medium",
                 )}
               >
                 {tab.label}

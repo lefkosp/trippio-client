@@ -9,8 +9,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Flat seal fill, not a gradient: the primary action should read as a
+        // stamped block of ink. (This carried a hardcoded #22b8a3 teal from
+        // the old palette, which survived the retoken as a red→teal gradient.)
         default:
-          "bg-gradient-to-br from-primary to-[#22b8a3] text-primary-foreground hover:brightness-110",
+          "bg-primary text-primary-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)] hover:brightness-110",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:

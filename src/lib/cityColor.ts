@@ -9,10 +9,19 @@
 // exact rather than probabilistic; only the 4th+ distinct city in a trip
 // cycles back and repeats a colour, which is a real but much smaller and
 // rarer limitation of a 3-colour palette.
+//
+// Widened from 3 slots to 6 (2026-08-23) because 3 wasn't enough for a real
+// trip: China 2026 has four distinct cities — Larnaca / Travel, Beijing,
+// Chongqing, Shanghai — so Shanghai wrapped around and rendered in Larnaca's
+// colour. The six hues are spread across the wheel and reserve red for the
+// seal accent, so no city badge can be mistaken for a primary action.
 const PALETTE = [
-  { bgClass: "bg-city-tokyo", fgClass: "text-city-tokyo-foreground" },
-  { bgClass: "bg-city-kyoto", fgClass: "text-city-kyoto-foreground" },
-  { bgClass: "bg-city-osaka", fgClass: "text-city-osaka-foreground" },
+  { bgClass: "bg-city-1", fgClass: "text-city-1-foreground" },
+  { bgClass: "bg-city-2", fgClass: "text-city-2-foreground" },
+  { bgClass: "bg-city-3", fgClass: "text-city-3-foreground" },
+  { bgClass: "bg-city-4", fgClass: "text-city-4-foreground" },
+  { bgClass: "bg-city-5", fgClass: "text-city-5-foreground" },
+  { bgClass: "bg-city-6", fgClass: "text-city-6-foreground" },
 ] as const;
 
 export type CityColorMap = Map<string, (typeof PALETTE)[number]>;

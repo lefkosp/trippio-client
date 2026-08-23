@@ -13,6 +13,8 @@ import { buildCityColorMap } from "@/lib/cityColor";
 import { EventCard } from "./components/EventCard";
 import { EventSheet } from "./components/EventSheet";
 import { AddEventSheet } from "./components/AddEventSheet";
+import { PartHeading, GapRow, NowRow } from "./components/TimelineRows";
+import { buildTimeline, dayPartLabel, nowMinutesFor } from "./timeline";
 import type { TripEvent, Suggestion } from "@/shared/types";
 
 function SuggestionCard({
@@ -84,6 +86,11 @@ export function DayDetailScreen() {
   const prevDay = dayIndex > 0 ? days?.[dayIndex - 1] : undefined;
   const nextDay =
     dayIndex >= 0 && days && dayIndex < days.length - 1 ? days[dayIndex + 1] : undefined;
+
+  const timeline = useMemo(
+    () => buildTimeline(events ?? [], nowMinutesFor(day?.date)),
+    [events, day?.date],
+  );
 
   const [selectedEvent, setSelectedEvent] = useState<TripEvent | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -164,7 +171,7 @@ export function DayDetailScreen() {
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground press-scale transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Itinerary
+            All days
           </button>
           <div className="flex items-center gap-1">
             <button
@@ -185,38 +192,56 @@ export function DayDetailScreen() {
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2.5 mb-1">
-          <h1 className="text-page-title">Day {day.dayNumber}</h1>
-          {cityConfig && (
-            <span className={`badge-subtle ${cityConfig.bgClass} ${cityConfig.fgClass}`}>
-              {day.city}
-            </span>
-          )}
+        <div className="flex items-end gap-3">
+          <span className="text-numeral text-[3.4rem]">
+            {String(day.dayNumber).padStart(2, "0")}
+          </span>
+          <div className="pb-1 min-w-0">
+            {cityConfig && (
+              <span className={`badge-subtle ${cityConfig.bgClass} ${cityConfig.fgClass}`}>
+                {day.city}
+              </span>
+            )}
+            <p className="text-data text-[11px] text-muted-foreground mt-1">
+              {dateStr}
+            </p>
+          </div>
         </div>
-        <p className="text-caption">{dateStr}</p>
         {day.notes && (
-          <p className="text-caption italic mt-1">{day.notes}</p>
+          <p className="text-caption italic mt-2">{day.notes}</p>
         )}
       </div>
 
       {/* Timeline */}
       {events && events.length > 0 ? (
-        <div className="space-y-0 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-          {events.map((event) => (
-            <EventCard
-              key={event._id}
-              event={event}
-              onClick={() => handleEventClick(event)}
-              highlightEventId={highlightEventId}
-            />
-          ))}
+        <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+          {timeline.map((row, i) => {
+            if (row.kind === "part")
+              return <PartHeading key={row.key} label={dayPartLabel[row.part]} />;
+            if (row.kind === "gap")
+              return <GapRow key={row.key} minutes={row.minutes} />;
+            if (row.kind === "now") return <NowRow key={row.key} />;
+            return (
+              <EventCard
+                key={row.key}
+                event={row.event}
+                onClick={() => handleEventClick(row.event)}
+                highlightEventId={highlightEventId}
+                startMinutes={row.startMinutes}
+                durationMinutes={row.durationMinutes}
+                continuesBelow={timeline
+                  .slice(i + 1)
+                  .some((r) => r.kind === "stop")}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-10">
           <div className="h-12 w-12 rounded-2xl bg-elev-2 flex items-center justify-center mx-auto mb-3">
             <PackageOpen className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">No events planned yet</p>
+          <p className="text-sm text-muted-foreground">This day is still empty</p>
           {!isReadOnly && (
             <Button
               variant="outline"
@@ -254,16 +279,21 @@ export function DayDetailScreen() {
         </div>
       )}
 
-      {/* Floating add button */}
+      {/* Floating add button. Anchored to the app column, not the viewport —
+          `right-4` on a fixed element put it hundreds of pixels away from the
+          content it belongs to on any wide screen. */}
       {!isReadOnly && (
-        <div className="fixed bottom-20 right-4 max-w-md">
-          <Button
-            size="lg"
-            className="rounded-full shadow-lg h-12 w-12 p-0 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
-            onClick={() => setAddSheetOpen(true)}
-          >
-            <Plus className="h-5 w-5" />
-          </Button>
+        <div className="fixed inset-x-0 bottom-24 z-40 pointer-events-none">
+          <div className="max-w-md mx-auto px-4 flex justify-end">
+            <Button
+              size="lg"
+              aria-label="Add an event"
+              className="pointer-events-auto rounded-full shadow-lg h-12 w-12 p-0 bg-primary text-primary-foreground hover:bg-primary/90 press-scale"
+              onClick={() => setAddSheetOpen(true)}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       )}
 

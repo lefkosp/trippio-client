@@ -15,7 +15,7 @@ export function AccessScreen() {
   function handleSheetOpenChange(open: boolean) {
     setSheetOpen(open);
     if (!open) {
-      navigate("/more");
+      navigate("/today");
     }
   }
 
@@ -26,7 +26,7 @@ export function AccessScreen() {
           variant="ghost"
           size="icon"
           className="h-8 w-8 shrink-0 -ml-1"
-          onClick={() => navigate("/more")}
+          onClick={() => navigate("/today")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

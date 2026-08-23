@@ -41,14 +41,23 @@ export function LoginScreen() {
   return (
     <div className="min-h-dvh bg-background flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <span className="trippio-wordmark text-2xl">Trippio</span>
-          <p className="text-sm text-muted-foreground mt-2">
-            Sign in with a magic link sent to your email
-          </p>
+        <div className="flex flex-col items-start gap-5">
+          <span
+            className="seal-mark h-16 w-16 text-2xl"
+            aria-hidden="true"
+          >
+            T
+          </span>
+          <div>
+            <h1 className="text-display text-[2.75rem] font-extrabold">Trippio</h1>
+            <p className="text-body text-muted-foreground mt-2 max-w-[30ch]">
+              A trip, planned by the people going on it.
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <p className="text-section-label">Sign in — we'll email you a link</p>
           <Input
             type="email"
             placeholder="you@example.com"

@@ -1,4 +1,4 @@
-import type { EventType, EventStatus } from "@/shared/types";
+import type { EventType, EventStatus, TripEvent } from "@/shared/types";
 import {
   Landmark,
   UtensilsCrossed,
@@ -52,6 +52,21 @@ export const eventStatusConfig: Record<
   done: { label: "Done", variant: "default" },
   skipped: { label: "Skipped", variant: "secondary" },
 };
+
+/** The one-line summary to show for a transit leg on a compact card.
+ *
+ * `transit` is often present with only `mode` set (that's how most of the China
+ * 2026 events came in), so rendering `instructions` unconditionally leaves a
+ * route icon followed by an empty string. Fall back through what's actually
+ * there, and return null when there's nothing worth a row. */
+export function transitSummary(transit?: TripEvent["transit"]): string | null {
+  if (!transit) return null;
+  if (transit.instructions?.trim()) return transit.instructions.trim();
+  if (transit.from && transit.to) return `${transit.from} → ${transit.to}`;
+  if (transit.from || transit.to) return (transit.from || transit.to) as string;
+  if (transit.mode) return transit.mode;
+  return null;
+}
 
 export function formatTime(time?: string): string {
   if (!time) return "";

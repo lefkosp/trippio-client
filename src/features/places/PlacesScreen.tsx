@@ -11,7 +11,6 @@ import {
   Landmark,
   Building2,
   Shrub,
-  TrainFront,
   CalendarClock,
   CalendarPlus,
   Pencil,
@@ -24,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterChips, type FilterOption } from "@/components/ui/filter-chips";
+import { PlaceName } from "@/components/place-name";
+import { MetroLine, AdvanceBookingNote } from "@/components/place-meta";
 import {
   Sheet,
   SheetContent,
@@ -47,7 +48,7 @@ import type { PlaceEnrichment } from "@/shared/api/client";
 
 const tagConfig: Record<string, { bgClass: string; fgClass: string }> = {
   food: { bgClass: "bg-event-food", fgClass: "text-event-food-foreground" },
-  shrine: { bgClass: "bg-city-kyoto", fgClass: "text-city-kyoto-foreground" },
+  shrine: { bgClass: "bg-city-3", fgClass: "text-city-3-foreground" },
   museum: { bgClass: "bg-event-hotel", fgClass: "text-event-hotel-foreground" },
   sight: { bgClass: "bg-event-sight", fgClass: "text-event-sight-foreground" },
 };
@@ -55,7 +56,7 @@ const tagConfig: Record<string, { bgClass: string; fgClass: string }> = {
 const placeTagFilters: FilterOption[] = [
   { value: "food", label: "Food", icon: UtensilsCrossed, bgClass: "bg-event-food", fgClass: "text-event-food-foreground" },
   { value: "sight", label: "Sight", icon: Landmark, bgClass: "bg-event-sight", fgClass: "text-event-sight-foreground" },
-  { value: "shrine", label: "Shrine", icon: Shrub, bgClass: "bg-city-kyoto", fgClass: "text-city-kyoto-foreground" },
+  { value: "shrine", label: "Shrine", icon: Shrub, bgClass: "bg-city-3", fgClass: "text-city-3-foreground" },
   { value: "museum", label: "Museum", icon: Building2, bgClass: "bg-event-hotel", fgClass: "text-event-hotel-foreground" },
 ];
 
@@ -77,13 +78,16 @@ function PlaceCard({
         {/* Name + maps button */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm">{place.name}</h3>
-            {place.nameZh && (
-              <p className="text-sm text-muted-foreground/90 mt-0.5">{place.nameZh}</p>
-            )}
+            <PlaceName
+              place={place}
+              tone="detail"
+              className="font-semibold text-sm"
+            />
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {place.address}
             </p>
+            <MetroLine place={place} className="mt-1.5" />
+            <AdvanceBookingNote place={place} className="mt-1.5" />
           </div>
           {href && (
             <Button
@@ -192,7 +196,9 @@ function PlaceDetailSheet({
             {place.name}
           </SheetTitle>
           {place.nameZh && (
-            <p className="text-lg text-muted-foreground">{place.nameZh}</p>
+            <p lang="zh-Hans" className="text-zh text-xl text-foreground/90">
+              {place.nameZh}
+            </p>
           )}
         </SheetHeader>
 
@@ -214,14 +220,7 @@ function PlaceDetailSheet({
             </div>
           )}
 
-          {(place.metroStation || place.metroLine) && (
-            <div className="flex items-center gap-3">
-              <TrainFront className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm">
-                {[place.metroLine, place.metroStation].filter(Boolean).join(" — ")}
-              </p>
-            </div>
-          )}
+          <MetroLine place={place} className="text-sm" />
 
           {place.requiresAdvanceBooking && (
             <div className="flex items-center gap-3 rounded-lg bg-warning/10 px-3 py-2">
@@ -340,7 +339,7 @@ function AssignToDaySheet({
         <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
           {days.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No days yet — generate days from the Itinerary tab first.
+              Lay out the days first, over on Itinerary.
             </p>
           ) : (
             <div>
@@ -928,7 +927,7 @@ export function PlacesScreen() {
           </div>
           <p className="text-sm text-muted-foreground">
             {searchQuery || activeTag
-              ? "No places match your filters"
+              ? "Nothing matches that"
               : "No places saved yet"}
           </p>
           {!searchQuery && !activeTag && !isReadOnly && (

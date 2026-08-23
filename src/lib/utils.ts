@@ -1,5 +1,33 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+/**
+ * The design system's own utilities all start with `text-` (`text-page-title`,
+ * `text-zh`, `text-data`, …), which is also Tailwind's namespace for font-size
+ * and text-colour. Stock tailwind-merge therefore reads them as conflicting
+ * with a real `text-xs` or `text-muted-foreground` in the same `cn()` call and
+ * silently drops ours — which is how `text-zh` went missing from PlaceName and
+ * every Chinese name rendered in the fallback font.
+ *
+ * Registering them as their own group makes them non-conflicting with
+ * Tailwind's, so they survive alongside a size or colour class.
+ */
+const twMerge = extendTailwindMerge<"trippio-type">({
+  extend: {
+    classGroups: {
+      "trippio-type": [
+        "text-display",
+        "text-page-title",
+        "text-numeral",
+        "text-section-label",
+        "text-body",
+        "text-caption",
+        "text-data",
+        "text-zh",
+      ],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

@@ -92,7 +92,7 @@ export function AppShell() {
                 ? "Could not open this trip. Check your connection to the Trippio server and make sure the link is valid."
                 : isReadOnly
                   ? "This shared trip is not available."
-                  : "No trips found. Create one or seed the database with `npm run seed`."}
+                  : "No trips yet. Start one and the days will follow."}
           </p>
           <p className="text-xs text-muted-foreground/60">
             {error instanceof Error ? error.message : ""}
@@ -122,16 +122,23 @@ export function AppShell() {
       setSelectedTripId={setSelectedTripId}
     >
       <TripProvider trip={activeTrip}>
-        <div className="h-dvh bg-background flex flex-col overflow-hidden">
-          {isOffline && (
-            <div className="shrink-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-medium text-center py-1.5 px-4">
-              Offline — showing cached data. Changes are disabled until you're back online.
-            </div>
-          )}
-          <TopBar />
-          <main className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-28">
-            <Outlet />
-          </main>
+        {/* Phone-first, and on a desktop it says so rather than floating a
+            448px column in a void. The app keeps its full height so every
+            fixed-position child (nav, FAB, sheets) still anchors correctly;
+            what changes is that the column now has visible edges and a
+            distinct ground behind it. */}
+        <div className="h-dvh bg-page flex flex-col overflow-hidden">
+          <div className="h-full w-full max-w-md mx-auto flex flex-col bg-background md:border-x md:border-border">
+            {isOffline && (
+              <div className="shrink-0 bg-warning text-warning-foreground text-xs font-medium text-center py-1.5 px-4">
+                Offline. Everything's here, but you can't change it until you're back.
+              </div>
+            )}
+            <TopBar />
+            <main className="flex-1 min-h-0 overflow-y-auto w-full px-4 pb-24">
+              <Outlet />
+            </main>
+          </div>
           <BottomNav />
         </div>
       </TripProvider>

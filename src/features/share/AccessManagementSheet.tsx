@@ -189,7 +189,7 @@ export function AccessManagementSheet({
             ) : !collaborators || collaborators.length === 0 ? (
               <div className="text-center py-8 bg-elev-2 rounded-xl border border-border">
                 <Users className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-sm font-medium">No collaborators yet</p>
+                <p className="text-sm font-medium">Just you so far</p>
                 <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
                   Create an editor link from the Share Links tab to invite people.
                 </p>

@@ -652,7 +652,7 @@ export function BookingsScreen() {
             <Ticket className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">
-            {activeType ? "No bookings match this filter" : "No bookings yet"}
+            {activeType ? "Nothing of that kind booked" : "Nothing booked yet"}
           </p>
           {!activeType && !isReadOnly && (
             <Button

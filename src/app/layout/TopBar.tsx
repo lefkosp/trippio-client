@@ -2,13 +2,16 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
+  ChevronRight,
   Check,
   Copy,
   Download,
   Link,
   LogOut,
+  MapPin,
   Plus,
   Share2,
+  Ticket,
   Trash2,
   Upload,
   Users,
@@ -22,6 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { CreateTripWizard } from "./CreateTripWizard";
+import { TripCover } from "./TripCover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useDays } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useTripSwitcher } from "@/shared/context/TripSwitcherContext";
 import { useAuth } from "@/auth/useAuth";
@@ -39,11 +44,18 @@ import { tripsApi } from "@/shared/api/client";
 import { useDeleteTrip, useImportTrip } from "@/shared/hooks/mutations";
 import { toast } from "sonner";
 
+const tripSections = [
+  { path: "/places", label: "Places", icon: MapPin },
+  { path: "/bookings", label: "Bookings", icon: Ticket },
+  { path: "/access", label: "Sharing & access", icon: Share2 },
+] as const;
+
 export function TopBar() {
   const navigate = useNavigate();
   const { trip } = useTripContext();
   const { trips, setSelectedTripId } = useTripSwitcher();
   const { logout, user, isReadOnly } = useAuth();
+  const { data: days } = useDays(trip._id);
   const [shareOpen, setShareOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -215,15 +227,17 @@ export function TopBar() {
         <div className="flex items-center justify-between px-4 h-14 max-w-md mx-auto">
           {/* Left: Wordmark + trip selector */}
           <div className="flex items-center gap-3">
-            <span className="trippio-wordmark text-sm">Trippio</span>
-            <div className="h-4 w-px bg-border" />
+            <span className="seal-mark h-6 w-6 text-[11px]" aria-hidden="true">
+              T
+            </span>
+            <span className="sr-only">Trippio</span>
             <button
               type="button"
-              onClick={() => !isReadOnly && setSwitcherOpen(true)}
+              onClick={() => setSwitcherOpen(true)}
               className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors press-scale min-w-0 max-w-[180px]"
             >
               <span className="truncate">{trip.name}</span>
-              {!isReadOnly && <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
             </button>
             {isReadOnly && (
               <span className="badge-subtle bg-elev-2 text-muted-foreground">
@@ -261,17 +275,46 @@ export function TopBar() {
       </header>
 
       {/* Trip switcher Sheet */}
-      <Sheet open={switcherOpen && !isReadOnly} onOpenChange={setSwitcherOpen}>
+      <Sheet open={switcherOpen} onOpenChange={setSwitcherOpen}>
         <SheetContent
           side="bottom"
-          className="max-h-[50dvh] rounded-t-2xl bg-elev-1 border-t border-border"
+          className="max-h-[88dvh] rounded-t-2xl bg-elev-1 border-t border-border flex flex-col"
         >
-          <SheetHeader className="text-left pb-2">
-            <SheetTitle className="text-lg tracking-tight">
-              Switch trip
-            </SheetTitle>
+          <SheetHeader className="text-left pb-2 shrink-0">
+            <SheetTitle className="sr-only">Trip</SheetTitle>
           </SheetHeader>
-          <div className="pt-2 px-4 pb-6">
+          <div className="flex-1 overflow-y-auto pt-1 px-4 pb-6">
+            <TripCover trip={trip} days={days} />
+
+            {/* Trip-level destinations. These used to sit behind a "More" tab,
+                which put Bookings two taps deep — the wrong place for the thing
+                you need in a hurry at an airport. */}
+            <div className="mt-4 flex flex-col">
+              {tripSections
+                .filter((section) => !(isReadOnly && section.path === "/access"))
+                .map((section) => {
+                const Icon = section.icon;
+                return (
+                  <button
+                    key={section.path}
+                    type="button"
+                    onClick={() => {
+                      setSwitcherOpen(false);
+                      navigate(section.path);
+                    }}
+                    className="flex items-center gap-3 rounded-[3px] px-3 py-3 text-left text-sm hover-lift border-b border-border last:border-b-0"
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1">{section.label}</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {!isReadOnly && (
+              <>
+            <p className="text-section-label mt-6 mb-2">Your trips</p>
             <ul className="space-y-1">
               {trips.map((t) => (
                 <li key={t._id}>
@@ -295,6 +338,8 @@ export function TopBar() {
                 </li>
               ))}
             </ul>
+              </>
+            )}
 
             {canShowActions && (
               <>

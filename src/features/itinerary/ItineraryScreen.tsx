@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, CalendarPlus, Pencil } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight, CalendarPlus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,19 +15,35 @@ import { useDays } from "@/shared/hooks/queries";
 import { useGenerateDays, useUpdateDay } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { buildCityColorMap, type CityColorMap } from "@/lib/cityColor";
 import { toast } from "sonner";
 import type { Day } from "@/shared/types";
+
+/** The moment you change city — the day you spend on a plane or a train. Given
+ *  its own row because it's the structural joint of the whole trip, and the old
+ *  list rendered it as just another indistinguishable row. */
+function LegBreak({ from, to }: { from: string; to: string }) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 bg-elev-2/60 border-y border-border">
+      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden="true" />
+      <span className="text-section-label truncate">
+        {from} → {to}
+      </span>
+    </div>
+  );
+}
 
 function DayRow({
   day,
   cityColors,
   onEditCity,
+  isToday,
 }: {
   day: Day;
   cityColors: CityColorMap;
   onEditCity: (day: Day) => void;
+  isToday: boolean;
 }) {
   const navigate = useNavigate();
   const dateStr = formatDate(day.date, {
@@ -39,29 +54,42 @@ function DayRow({
   const cityConfig = day.city ? cityColors.get(day.city) : undefined;
 
   return (
-    <div className="w-full flex items-center gap-3 py-3 px-2 hover-lift rounded-lg transition-colors">
+    <div
+      className={cn(
+        "w-full flex items-center gap-3 pr-3 hover-lift transition-colors border-l-[3px]",
+        cityConfig ? `${cityConfig.fgClass} border-current` : "border-transparent",
+        isToday && "bg-primary/[0.06]",
+      )}
+    >
       <button
         onClick={() => navigate(`/itinerary/${day._id}`)}
-        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        className="flex items-center gap-3.5 flex-1 min-w-0 text-left py-3 pl-3.5"
       >
-        {/* Day number circle */}
-        <div className="flex items-center justify-center h-9 w-9 rounded-full bg-elev-2 border border-border text-xs font-bold text-muted-foreground shrink-0">
-          {day.dayNumber}
-        </div>
+        <span className="text-numeral text-[1.75rem] text-foreground shrink-0 w-9">
+          {String(day.dayNumber).padStart(2, "0")}
+        </span>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="font-medium text-sm">Day {day.dayNumber}</p>
-          </div>
-          <p className="text-xs text-muted-foreground">{dateStr}</p>
-          {day.notes && (
-            <p className="text-xs text-muted-foreground/70 italic mt-0.5 truncate">
+        <span className="flex-1 min-w-0">
+          <span className="block text-data text-[11px] text-muted-foreground">
+            {dateStr}
+          </span>
+          {day.notes ? (
+            <span className="block text-sm text-foreground/90 truncate mt-0.5">
               {day.notes}
-            </p>
+            </span>
+          ) : (
+            <span className="block text-sm text-muted-foreground/60 italic mt-0.5">
+              Nothing noted
+            </span>
           )}
-        </div>
+        </span>
       </button>
+
+      {isToday && (
+        <span className="text-data text-[10px] text-primary shrink-0 tracking-[0.08em]">
+          TODAY
+        </span>
+      )}
 
       {/* City — separate tap target from the row navigation */}
       <button
@@ -70,23 +98,19 @@ function DayRow({
           onEditCity(day);
         }}
         className="shrink-0 press-scale"
+        aria-label={day.city ? `Change city for day ${day.dayNumber}` : "Set city"}
       >
         {day.city ? (
-          <span className={`badge-subtle flex items-center gap-1 ${cityConfig?.bgClass ?? ""} ${cityConfig?.fgClass ?? ""}`}>
+          <span className={`badge-subtle ${cityConfig?.bgClass ?? ""} ${cityConfig?.fgClass ?? ""}`}>
             {day.city}
           </span>
         ) : (
-          <span className="badge-subtle flex items-center gap-1 bg-elev-2 text-muted-foreground border border-dashed border-border">
+          <span className="badge-subtle gap-1 bg-elev-2 text-muted-foreground border border-dashed border-border">
             <Pencil className="h-2.5 w-2.5" />
             City
           </span>
         )}
       </button>
-
-      <ChevronRight
-        className="h-4 w-4 text-muted-foreground/40 shrink-0 cursor-pointer"
-        onClick={() => navigate(`/itinerary/${day._id}`)}
-      />
     </div>
   );
 }
@@ -168,6 +192,11 @@ export function ItineraryScreen() {
 
   const generateDays = useGenerateDays(tripId);
 
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
   // Built once from the day list (in date order) so every city on this trip
   // gets a distinct colour up to the palette size, and the same city always
   // renders the same colour across the filter chips and the day rows below.
@@ -212,7 +241,7 @@ export function ItineraryScreen() {
   return (
     <div className="space-y-6">
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-4">
-        <h1 className="text-page-title">Itinerary</h1>
+        <h1 className="text-page-title">Days</h1>
 
         {/* City filter */}
         {cityFilterOptions.length > 0 && (
@@ -232,7 +261,7 @@ export function ItineraryScreen() {
         </div>
       ) : days && days.length === 0 ? (
         <div className="text-center py-12 space-y-3">
-          <p className="text-sm text-muted-foreground">No days yet</p>
+          <p className="text-sm text-muted-foreground">No days laid out yet</p>
           {!isReadOnly && (
             <Button
               variant="outline"
@@ -243,27 +272,39 @@ export function ItineraryScreen() {
               <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
               {generateDays.isPending
                 ? "Generating…"
-                : `Generate ${tripLengthDays} days from your trip dates`}
+                : `Lay out all ${tripLengthDays} days`}
             </Button>
           )}
         </div>
       ) : filteredDays && filteredDays.length > 0 ? (
-        <Card key={activeCity ?? "all"} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-          <CardContent className="p-2">
-            {filteredDays.map((day, i) => (
+        <div
+          key={activeCity ?? "all"}
+          className="-mx-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+        >
+          {filteredDays.map((day, i) => {
+            const prev = filteredDays[i - 1];
+            const changedCity =
+              prev && prev.city && day.city && prev.city !== day.city;
+            return (
               <div key={day._id}>
-                <DayRow day={day} cityColors={cityColors} onEditCity={handleEditCity} />
-                {i < (filteredDays.length - 1) && (
-                  <div className="mx-2 border-b border-border" />
+                {changedCity && <LegBreak from={prev.city} to={day.city} />}
+                {!changedCity && i > 0 && (
+                  <div className="ml-[3px] border-b border-border/70" />
                 )}
+                <DayRow
+                  day={day}
+                  cityColors={cityColors}
+                  onEditCity={handleEditCity}
+                  isToday={day.date.slice(0, 10) === todayIso}
+                />
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            );
+          })}
+        </div>
       ) : (
         <div className="text-center py-12">
           <p className="text-sm text-muted-foreground">
-            No days match this filter
+            No days in that city
           </p>
         </div>
       )}

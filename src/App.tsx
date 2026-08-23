@@ -17,7 +17,6 @@ import { BookingsScreen } from "@/features/bookings/BookingsScreen";
 import { PlacesScreen } from "@/features/places/PlacesScreen";
 import { ShareOpenScreen } from "@/features/share/ShareOpenScreen";
 import { ProposalsScreen } from "@/features/proposals/ProposalsScreen";
-import { MoreScreen } from "@/features/more/MoreScreen";
 import { AccessScreen } from "@/features/share/AccessScreen";
 
 const THIRTY_DAYS_MS = 1000 * 60 * 60 * 24 * 30;
@@ -108,7 +107,10 @@ function App() {
               <Route path="/bookings" element={<BookingsScreen />} />
               <Route path="/places" element={<PlacesScreen />} />
               <Route path="/proposals" element={<ProposalsScreen />} />
-              <Route path="/more" element={<MoreScreen />} />
+              {/* The "More" tab is gone — Places, Bookings and Sharing moved
+                  into the trip sheet. Kept as a redirect so an old bookmark or
+                  an installed PWA shortcut doesn't dead-end. */}
+              <Route path="/more" element={<Navigate to="/today" replace />} />
               <Route path="/access" element={<AccessScreen />} />
               <Route path="/" element={<Navigate to="/today" replace />} />
               <Route path="*" element={<Navigate to="/today" replace />} />

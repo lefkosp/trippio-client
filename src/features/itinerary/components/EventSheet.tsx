@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { eventTypeConfig, eventStatusConfig } from "@/shared/utils/event-helpers";
+import { eventTypeConfig, eventStatusConfig, transitSummary } from "@/shared/utils/event-helpers";
+import { PlaceName } from "@/components/place-name";
+import { MetroLine, AdvanceBookingNote } from "@/components/place-meta";
 import { useUpdateEvent, useDeleteEvent } from "@/shared/hooks/mutations";
 import { mapLink } from "@/lib/mapLink";
 import { formatDate } from "@/lib/utils";
@@ -148,11 +150,17 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{event.place.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <PlaceName
+                      place={event.place}
+                      tone="detail"
+                      className="text-sm font-medium"
+                    />
+                    <p className="text-xs text-muted-foreground">
                       {event.place.address}
                     </p>
+                    <MetroLine place={event.place} />
+                    <AdvanceBookingNote place={event.place} />
                   </div>
                 </div>
                 {event.place.phone && (
@@ -187,8 +195,10 @@ export function EventSheet({ event, open, onOpenChange, dayId }: EventSheetProps
             </>
           )}
 
-          {/* Transit */}
-          {event.transit && (
+          {/* Transit — only when there's something under the heading to show.
+              A transit object carrying nothing but `mode` rendered as a
+              "Transit / Walk" header with an empty body. */}
+          {event.transit && transitSummary(event.transit) && (
             <>
               <Separator className="bg-border" />
               <div className="space-y-2.5">

@@ -5,15 +5,23 @@ import { useState } from "react";
 // there's no reliable way to detect "blocked" (a slow/failed tile load looks
 // the same as a flaky connection) and this only matters for the ~2 weeks of
 // the actual trip.
-export type MapTileSource = "osm" | "amap";
+//
+// "dark" is Carto's dark basemap — OSM data, so it's blocked in mainland China
+// exactly like `osm` is, and it exists for planning at home: bright OSM tiles
+// inside a near-black app are jarring at any hour and blinding at night. Amap
+// remains the one that actually works on the ground.
+export type MapTileSource = "osm" | "dark" | "amap";
 
 const STORAGE_KEY = "trippio:mapTileSource";
 
+const VALID: MapTileSource[] = ["osm", "dark", "amap"];
+
 function readStored(): MapTileSource {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "amap" ? "amap" : "osm";
+    const stored = localStorage.getItem(STORAGE_KEY) as MapTileSource | null;
+    return stored && VALID.includes(stored) ? stored : "dark";
   } catch {
-    return "osm";
+    return "dark";
   }
 }
 

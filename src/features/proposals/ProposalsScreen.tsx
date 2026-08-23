@@ -1013,10 +1013,10 @@ function EmptyState({
   onAdd: () => void;
 }) {
   const messages: Record<StatusTab, string> = {
-    open: "No open proposals yet",
-    approved: "No approved proposals",
-    rejected: "No rejected proposals",
-    promoted: "Nothing promoted to places yet",
+    open: "Nobody's thrown an idea in yet",
+    approved: "Nothing agreed on yet",
+    rejected: "Nothing turned down yet",
+    promoted: "No ideas have become places yet",
   };
 
   return (

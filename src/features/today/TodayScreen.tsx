@@ -7,11 +7,8 @@ import {
   Flag,
   Route,
   CalendarDays,
-  Ticket,
-  Map,
   Lightbulb,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTodayData, useProposals } from "@/shared/hooks/queries";
@@ -19,6 +16,8 @@ import { useTripContext } from "@/shared/context/useTripContext";
 import { eventTypeConfig } from "@/shared/utils/event-helpers";
 import { formatDate } from "@/lib/utils";
 import { mapLink } from "@/lib/mapLink";
+import { PlaceName } from "@/components/place-name";
+import { MetroLine, AdvanceBookingNote } from "@/components/place-meta";
 import type { TripEvent } from "@/shared/types";
 
 function NextUpCard({ event }: { event: TripEvent }) {
@@ -57,9 +56,9 @@ function NextUpCard({ event }: { event: TripEvent }) {
           </div>
         )}
         {event.place && (
-          <div className="flex items-center gap-2 text-sm">
-            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="flex-1 truncate">{event.place.name}</span>
+          <div className="flex items-start gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <PlaceName place={event.place} tone="detail" className="flex-1" />
             {placeMapLink && (
               <Button
                 variant="outline"
@@ -79,6 +78,8 @@ function NextUpCard({ event }: { event: TripEvent }) {
             )}
           </div>
         )}
+        <MetroLine place={event.place} className="pl-6 text-[13px]" />
+        <AdvanceBookingNote place={event.place} className="pl-6 text-[13px]" />
       </div>
 
       {/* Transit */}
@@ -104,31 +105,59 @@ function NextUpCard({ event }: { event: TripEvent }) {
   );
 }
 
-function EventRow({ event }: { event: TripEvent }) {
-  const config = eventTypeConfig[event.type];
-  const Icon = config.icon;
+/** Extracted because this block used to exist twice, verbatim, in both branches
+ *  of TodayScreen — it would have drifted the first time either was edited. */
+function OpenIdeasRow({
+  count,
+  onReview,
+}: {
+  count: number;
+  onReview: () => void;
+}) {
+  if (count === 0) return null;
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-border last:border-b-0 hover-lift cursor-pointer rounded-lg px-1">
-      <div
-        className={`flex items-center justify-center h-8 w-8 rounded-lg ${config.bgClass}`}
-      >
-        <Icon className={`h-3.5 w-3.5 ${config.fgClass}`} />
-      </div>
+    <button
+      onClick={onReview}
+      className="w-full flex items-center gap-3 rounded-[3px] border border-border bg-elev-1 px-4 py-3 text-left hover-lift"
+    >
+      <Lightbulb className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+      <span className="flex-1 min-w-0 text-sm">
+        {count} {count === 1 ? "idea" : "ideas"} waiting on you
+      </span>
+      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+    </button>
+  );
+}
+
+/** A later stop on today. Same time-in-a-gutter grammar as the day timeline,
+ *  so the two screens read as the same system. */
+function EventRow({ event }: { event: TripEvent }) {
+  const config = eventTypeConfig[event.type];
+  const isDone = event.status === "done";
+
+  return (
+    <div className="flex items-baseline gap-3 py-3 border-b border-border last:border-b-0">
+      <span className="text-data text-[11px] text-muted-foreground w-11 shrink-0 tabular">
+        {event.startTime || "—"}
+      </span>
+      <span
+        className={`h-2 w-2 rounded-full shrink-0 bg-current self-center ${
+          isDone ? "text-muted-foreground/50" : config.fgClass
+        }`}
+        aria-hidden="true"
+      />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{event.title}</p>
-        {event.startTime && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {event.startTime}
-          </p>
+        <p
+          className={`text-sm truncate ${isDone ? "text-muted-foreground" : "font-medium"}`}
+        >
+          {event.title}
+        </p>
+        {event.place && (
+          <PlaceName place={event.place} className="text-xs text-muted-foreground mt-0.5" />
         )}
       </div>
-      {event.status === "done" && (
-        <span className="badge-subtle bg-success text-success-foreground">
-          Done
-        </span>
-      )}
-      <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+      {isDone && <span className="seal-stamp shrink-0">Done</span>}
     </div>
   );
 }
@@ -158,37 +187,14 @@ export function TodayScreen() {
   if (!data || data.events.length === 0) {
     return (
       <div className="space-y-6 pt-6">
-        {openCount > 0 && (
-          <Card className="bg-elev-1 border-border">
-            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                  <Lightbulb className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-sm">Open proposals</p>
-                  <p className="text-xs text-muted-foreground">
-                    {openCount} {openCount === 1 ? "idea" : "ideas"} waiting for votes
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => navigate("/proposals?status=open")}
-              >
-                Review
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <OpenIdeasRow count={openCount} onReview={() => navigate("/proposals?status=open")} />
         <div className="text-center py-16">
           <div className="h-12 w-12 rounded-2xl bg-elev-2 flex items-center justify-center mx-auto mb-4">
             <Flag className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-semibold">No events today</h2>
+          <h2 className="text-lg font-semibold">Nothing planned today</h2>
           <p className="text-sm text-muted-foreground mt-1.5">
-            Enjoy a free day or add something to your plan.
+            Good. Go wander — or open the day and add something.
           </p>
         </div>
       </div>
@@ -201,104 +207,55 @@ export function TodayScreen() {
   return (
     <div className="space-y-8">
       {/* Day header */}
-      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50 space-y-1">
-        <h1 className="text-page-title">
-          Day {day.dayNumber} — {day.city}
-        </h1>
-        <p className="text-caption">
-          {formatDate(day.date, {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-6 pb-3 glass border-b border-border/50">
+        <div className="flex items-end gap-3">
+          <span className="text-numeral text-[3.4rem]">
+            {String(day.dayNumber).padStart(2, "0")}
+          </span>
+          <div className="pb-1 min-w-0">
+            {day.city && (
+              <p className="text-display text-lg truncate">{day.city}</p>
+            )}
+            <p className="text-data text-[11px] text-muted-foreground mt-0.5">
+              {formatDate(day.date, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
         {day.notes && (
-          <p className="text-caption italic mt-0.5">{day.notes}</p>
+          <p className="text-caption italic mt-2">{day.notes}</p>
         )}
       </div>
 
-      {/* Open proposals card */}
-      {openCount > 0 && (
-        <Card className="bg-elev-1 border-border">
-          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                <Lightbulb className="h-4 w-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium text-sm">Open proposals</p>
-                <p className="text-xs text-muted-foreground">
-                  {openCount} {openCount === 1 ? "idea" : "ideas"} waiting for votes
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => navigate("/proposals?status=open")}
-            >
-              Review
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      <OpenIdeasRow count={openCount} onReview={() => navigate("/proposals?status=open")} />
 
-      {/* Next up card */}
+      {/* The one thing that matters: what you're doing next. */}
       {nextEvent && <NextUpCard event={nextEvent} />}
-
-      {/* Quick actions */}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 h-10 border-border text-muted-foreground hover:text-foreground hover:bg-elev-2 press-scale"
-          onClick={() => navigate(`/itinerary/${day._id}`)}
-        >
-          <CalendarDays className="h-4 w-4 mr-1.5" />
-          Day View
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 h-10 border-border text-muted-foreground hover:text-foreground hover:bg-elev-2 press-scale"
-          onClick={() => navigate("/map")}
-        >
-          <Map className="h-4 w-4 mr-1.5" />
-          Map
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 h-10 border-border text-muted-foreground hover:text-foreground hover:bg-elev-2 press-scale"
-          onClick={() => navigate("/bookings")}
-        >
-          <Ticket className="h-4 w-4 mr-1.5" />
-          Bookings
-        </Button>
-      </div>
 
       {/* Rest of events */}
       {restEvents.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-section-label">Later Today</h2>
-          <Card>
-            <CardContent className="p-3">
-              {restEvents.map((event) => (
-                <EventRow key={event._id} event={event} />
-              ))}
-            </CardContent>
-          </Card>
+          <h2 className="text-section-label">Later today</h2>
+          <div className="border-t border-border">
+            {restEvents.map((event) => (
+              <EventRow key={event._id} event={event} />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* View full day button */}
+      {/* One route to the full day, not three. Map and Bookings already have
+          their own homes and don't need shortcuts duplicated here. */}
       <Button
         variant="outline"
         className="w-full border-primary/20 text-primary hover:bg-primary/10"
         onClick={() => navigate(`/itinerary/${day._id}`)}
       >
         <CalendarDays className="h-4 w-4 mr-2" />
-        View Full Day Plan
+        The whole day
         <ChevronRight className="h-4 w-4 ml-auto" />
       </Button>
     </div>
