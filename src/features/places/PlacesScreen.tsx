@@ -14,6 +14,7 @@ import {
   TrainFront,
   CalendarClock,
   CalendarPlus,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { usePlaces, useDays } from "@/shared/hooks/queries";
-import { useCreatePlace, useCreateEvent } from "@/shared/hooks/mutations";
+import { useCreatePlace, useUpdatePlace, useCreateEvent } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import { mapLink } from "@/lib/mapLink";
@@ -142,12 +143,14 @@ function PlaceDetailSheet({
   open,
   onOpenChange,
   onAssign,
+  onEdit,
   isReadOnly,
 }: {
   place: Place | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAssign: (place: Place) => void;
+  onEdit: (place: Place) => void;
   isReadOnly: boolean;
 }) {
   if (!place) return null;
@@ -239,14 +242,24 @@ function PlaceDetailSheet({
           )}
 
           {!isReadOnly && (
-            <Button
-              size="sm"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => onAssign(place)}
-            >
-              <CalendarPlus className="h-4 w-4 mr-2" />
-              Assign to day
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => onAssign(place)}
+              >
+                <CalendarPlus className="h-4 w-4 mr-2" />
+                Assign to day
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-border"
+                onClick={() => onEdit(place)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
           )}
 
           {place.notes && (
@@ -363,12 +376,18 @@ function AssignToDaySheet({
 function AddPlaceSheet({
   open,
   onOpenChange,
+  editingPlace,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, the sheet edits this place in place instead of creating a new one. */
+  editingPlace?: Place | null;
 }) {
   const { tripId } = useTripContext();
   const createPlace = useCreatePlace(tripId);
+  const updatePlace = useUpdatePlace(tripId);
+  const isEditing = Boolean(editingPlace);
+  const saveMutation = isEditing ? updatePlace : createPlace;
 
   const [name, setName] = useState("");
   const [nameZh, setNameZh] = useState("");
@@ -396,6 +415,29 @@ function AddPlaceSheet({
     setNotes("");
   }
 
+  // Seed the form from the place being edited only when the sheet opens,
+  // so it doesn't clobber in-progress edits on unrelated re-renders.
+  useEffect(() => {
+    if (!open) return;
+    if (editingPlace) {
+      setName(editingPlace.name ?? "");
+      setNameZh(editingPlace.nameZh ?? "");
+      setAddress(editingPlace.address ?? "");
+      setPhone(editingPlace.phone ?? "");
+      setTagsInput((editingPlace.tags ?? []).join(", "));
+      setGoogleMapsUrl(editingPlace.googleMapsUrl ?? "");
+      setMetroStation(editingPlace.metroStation ?? "");
+      setMetroLine(editingPlace.metroLine ?? "");
+      setRequiresAdvanceBooking(Boolean(editingPlace.requiresAdvanceBooking));
+      setBookingWindowDays(
+        editingPlace.bookingWindowDays ? String(editingPlace.bookingWindowDays) : ""
+      );
+      setNotes(editingPlace.notes ?? "");
+    } else {
+      reset();
+    }
+  }, [open, editingPlace]);
+
   function handleSave() {
     if (!name.trim()) return;
     const tags = tagsInput
@@ -403,27 +445,30 @@ function AddPlaceSheet({
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
 
-    createPlace.mutate(
-      {
-        name: name.trim(),
-        nameZh: nameZh.trim() || undefined,
-        address: address.trim(),
-        phone: phone || undefined,
-        tags: tags.length > 0 ? tags : undefined,
-        googleMapsUrl: googleMapsUrl || undefined,
-        metroStation: metroStation.trim() || undefined,
-        metroLine: metroLine.trim() || undefined,
-        requiresAdvanceBooking: requiresAdvanceBooking || undefined,
-        bookingWindowDays: bookingWindowDays ? Number(bookingWindowDays) : undefined,
-        notes: notes || undefined,
-      },
-      {
-        onSuccess: () => {
-          reset();
-          onOpenChange(false);
-        },
-      }
-    );
+    const data = {
+      name: name.trim(),
+      nameZh: nameZh.trim() || undefined,
+      address: address.trim(),
+      phone: phone || undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      googleMapsUrl: googleMapsUrl || undefined,
+      metroStation: metroStation.trim() || undefined,
+      metroLine: metroLine.trim() || undefined,
+      requiresAdvanceBooking: requiresAdvanceBooking || undefined,
+      bookingWindowDays: bookingWindowDays ? Number(bookingWindowDays) : undefined,
+      notes: notes || undefined,
+    };
+
+    const onSuccess = () => {
+      reset();
+      onOpenChange(false);
+    };
+
+    if (isEditing && editingPlace) {
+      updatePlace.mutate({ placeId: editingPlace._id, data }, { onSuccess });
+    } else {
+      createPlace.mutate(data, { onSuccess });
+    }
   }
 
   return (
@@ -433,7 +478,9 @@ function AddPlaceSheet({
         className="max-h-[85dvh] rounded-t-2xl bg-elev-1 border-t border-border"
       >
         <SheetHeader className="text-left pb-2 shrink-0">
-          <SheetTitle className="text-lg tracking-tight">Add Place</SheetTitle>
+          <SheetTitle className="text-lg tracking-tight">
+            {isEditing ? "Edit Place" : "Add Place"}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pt-1 px-4 pb-6">
@@ -563,9 +610,9 @@ function AddPlaceSheet({
             <Button
               className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleSave}
-              disabled={!name.trim() || createPlace.isPending}
+              disabled={!name.trim() || saveMutation.isPending}
             >
-              {createPlace.isPending ? "Saving..." : "Save Place"}
+              {saveMutation.isPending ? "Saving..." : isEditing ? "Save Changes" : "Save Place"}
             </Button>
           </div>
         </div>
@@ -598,6 +645,8 @@ export function PlacesScreen() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [assignPlace, setAssignPlace] = useState<Place | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [editingPlace, setEditingPlace] = useState<Place | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -691,12 +740,24 @@ export function PlacesScreen() {
           setAssignPlace(place);
           setAssignOpen(true);
         }}
+        onEdit={(place) => {
+          setDetailOpen(false);
+          setEditingPlace(place);
+          setEditOpen(true);
+        }}
       />
       <AssignToDaySheet
         place={assignPlace}
         open={assignOpen}
         onOpenChange={setAssignOpen}
       />
+      {!isReadOnly && (
+        <AddPlaceSheet
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editingPlace={editingPlace}
+        />
+      )}
     </div>
   );
 }

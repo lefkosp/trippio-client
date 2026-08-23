@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Ticket,
   Plus,
@@ -16,6 +16,7 @@ import {
   Trash2,
   IdCard,
   FileText,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useBookings } from "@/shared/hooks/queries";
-import { useCreateBooking, useDeleteBooking } from "@/shared/hooks/mutations";
+import { useCreateBooking, useUpdateBooking, useDeleteBooking } from "@/shared/hooks/mutations";
 import { useTripContext } from "@/shared/context/useTripContext";
 import { useAuth } from "@/auth/useAuth";
 import { cn } from "@/lib/utils";
@@ -211,10 +212,12 @@ function BookingDetailSheet({
   booking,
   open,
   onOpenChange,
+  onEdit,
 }: {
   booking: Booking | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit: (booking: Booking) => void;
 }) {
   const { tripId } = useTripContext();
   const { isReadOnly } = useAuth();
@@ -321,20 +324,31 @@ function BookingDetailSheet({
           {!isReadOnly && (
             <>
               <Separator className="bg-border" />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-xs text-danger-foreground hover:bg-danger/20"
-                onClick={() => {
-                  deleteMutation.mutate(booking._id, {
-                    onSuccess: () => onOpenChange(false),
-                  });
-                }}
-                disabled={deleteMutation.isPending}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                {deleteMutation.isPending ? "Deleting..." : "Delete Booking"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs border-border"
+                  onClick={() => onEdit(booking)}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit Booking
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 text-xs text-danger-foreground hover:bg-danger/20"
+                  onClick={() => {
+                    deleteMutation.mutate(booking._id, {
+                      onSuccess: () => onOpenChange(false),
+                    });
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                </Button>
+              </div>
             </>
           )}
         </div>
@@ -348,12 +362,18 @@ function BookingDetailSheet({
 function AddBookingSheet({
   open,
   onOpenChange,
+  editingBooking,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, the sheet edits this booking in place instead of creating a new one. */
+  editingBooking?: Booking | null;
 }) {
   const { tripId } = useTripContext();
   const createBooking = useCreateBooking(tripId);
+  const updateBooking = useUpdateBooking(tripId);
+  const isEditing = Boolean(editingBooking);
+  const saveMutation = isEditing ? updateBooking : createBooking;
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<BookingType>("flight");
@@ -375,26 +395,47 @@ function AddBookingSheet({
     setNotes("");
   }
 
+  // Seed the form from the booking being edited only when the sheet opens,
+  // so it doesn't clobber in-progress edits on unrelated re-renders.
+  useEffect(() => {
+    if (!open) return;
+    if (editingBooking) {
+      setTitle(editingBooking.title ?? "");
+      setType(editingBooking.type ?? "flight");
+      setDate(editingBooking.date ?? "");
+      setStartTime(editingBooking.startTime ?? "");
+      setConfirmationNumber(editingBooking.confirmationNumber ?? "");
+      setLocation(editingBooking.location ?? "");
+      setLink(editingBooking.links?.[0] ?? "");
+      setNotes(editingBooking.notes ?? "");
+    } else {
+      reset();
+    }
+  }, [open, editingBooking]);
+
   function handleSave() {
     if (!title.trim()) return;
-    createBooking.mutate(
-      {
-        title: title.trim(),
-        type,
-        date: date || undefined,
-        startTime: startTime || undefined,
-        confirmationNumber: confirmationNumber || undefined,
-        location: location || undefined,
-        links: link ? [link] : undefined,
-        notes: notes || undefined,
-      },
-      {
-        onSuccess: () => {
-          reset();
-          onOpenChange(false);
-        },
-      }
-    );
+    const data = {
+      title: title.trim(),
+      type,
+      date: date || undefined,
+      startTime: startTime || undefined,
+      confirmationNumber: confirmationNumber || undefined,
+      location: location || undefined,
+      links: link ? [link] : undefined,
+      notes: notes || undefined,
+    };
+
+    const onSuccess = () => {
+      reset();
+      onOpenChange(false);
+    };
+
+    if (isEditing && editingBooking) {
+      updateBooking.mutate({ bookingId: editingBooking._id, data }, { onSuccess });
+    } else {
+      createBooking.mutate(data, { onSuccess });
+    }
   }
 
   return (
@@ -405,7 +446,7 @@ function AddBookingSheet({
       >
         <SheetHeader className="text-left pb-2 shrink-0">
           <SheetTitle className="text-lg tracking-tight">
-            Add Booking
+            {isEditing ? "Edit Booking" : "Add Booking"}
           </SheetTitle>
         </SheetHeader>
 
@@ -528,9 +569,9 @@ function AddBookingSheet({
             <Button
               className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleSave}
-              disabled={!title.trim() || createBooking.isPending}
+              disabled={!title.trim() || saveMutation.isPending}
             >
-              {createBooking.isPending ? "Saving..." : "Save Booking"}
+              {saveMutation.isPending ? "Saving..." : isEditing ? "Save Changes" : "Save Booking"}
             </Button>
           </div>
         </div>
@@ -556,6 +597,8 @@ export function BookingsScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -630,7 +673,19 @@ export function BookingsScreen() {
         booking={selectedBooking}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onEdit={(booking) => {
+          setDetailOpen(false);
+          setEditingBooking(booking);
+          setEditOpen(true);
+        }}
       />
+      {!isReadOnly && (
+        <AddBookingSheet
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editingBooking={editingBooking}
+        />
+      )}
     </div>
   );
 }
