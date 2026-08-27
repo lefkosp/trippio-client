@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDays } from "@/shared/hooks/queries";
 import { useTripContext } from "@/shared/context/useTripContext";
-import { useTripSwitcher } from "@/shared/context/TripSwitcherContext";
+import { useTripSwitcher } from "@/shared/context/useTripSwitcher";
 import { useAuth } from "@/auth/useAuth";
 import { tripsApi } from "@/shared/api/client";
 import { useDeleteTrip, useImportTrip } from "@/shared/hooks/mutations";
@@ -54,7 +54,7 @@ export function TopBar() {
   const navigate = useNavigate();
   const { trip } = useTripContext();
   const { trips, setSelectedTripId } = useTripSwitcher();
-  const { logout, user, isReadOnly } = useAuth();
+  const { logout, user, isReadOnly, isOffline, share } = useAuth();
   const { data: days } = useDays(trip._id);
   const [shareOpen, setShareOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -241,7 +241,14 @@ export function TopBar() {
             </button>
             {isReadOnly && (
               <span className="badge-subtle bg-elev-2 text-muted-foreground">
-                View only (shared)
+                {/* isReadOnly collapses two different causes. A share visitor can
+                    never edit; someone offline can, once they're back — so name
+                    which one it is rather than always blaming a share link. */}
+                {share && !user
+                  ? "View only (shared)"
+                  : isOffline
+                    ? "View only (offline)"
+                    : "View only"}
               </span>
             )}
           </div>

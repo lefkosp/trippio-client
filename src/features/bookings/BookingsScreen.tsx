@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import {
   Ticket,
   Plus,
@@ -397,7 +398,7 @@ function AddBookingSheet({
 
   // Seed the form from the booking being edited only when the sheet opens,
   // so it doesn't clobber in-progress edits on unrelated re-renders.
-  useEffect(() => {
+  useResetOnChange(open ? (editingBooking?._id ?? "new") : null, () => {
     if (!open) return;
     if (editingBooking) {
       setTitle(editingBooking.title ?? "");
@@ -411,7 +412,7 @@ function AddBookingSheet({
     } else {
       reset();
     }
-  }, [open, editingBooking]);
+  });
 
   function handleSave() {
     if (!title.trim()) return;

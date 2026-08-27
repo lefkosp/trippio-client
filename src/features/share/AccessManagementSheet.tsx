@@ -209,7 +209,7 @@ export function AccessManagementSheet({
                       <select
                         className="text-xs bg-transparent border border-border rounded-md px-2 py-1 outline-none focus:border-primary cursor-pointer"
                         value={c.role}
-                        onChange={(e) => handleChangeRole(c.userId, e.target.value as any)}
+                        onChange={(e) => handleChangeRole(c.userId, e.target.value as "editor" | "viewer")}
                         disabled={updateRole.isPending}
                       >
                         <option value="editor">Editor</option>

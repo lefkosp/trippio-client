@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import {
   Sheet,
   SheetContent,
@@ -40,7 +41,7 @@ export function ReplaceEventProposalSheet({ event, open, onOpenChange }: Replace
 
   // Reset to a blank idea every time the sheet opens — a replacement is a
   // fresh idea, not a copy of what's being replaced.
-  useEffect(() => {
+  useResetOnChange(open, () => {
     if (!open) return;
     setTitle("");
     setCategory("activity");
@@ -48,7 +49,7 @@ export function ReplaceEventProposalSheet({ event, open, onOpenChange }: Replace
     setLink("");
     setAddress("");
     setApplyMode("immediate");
-  }, [open]);
+  });
 
   const isSaving = createProposal.isPending || approveProposal.isPending || promoteProposal.isPending;
 

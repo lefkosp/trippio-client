@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CalendarPlus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,9 +130,9 @@ function EditCitySheet({
   const updateDay = useUpdateDay(tripId);
   const [city, setCity] = useState(day?.city ?? "");
 
-  useEffect(() => {
-    if (open) setCity(day?.city ?? "");
-  }, [open, day]);
+  useResetOnChange(open ? (day?._id ?? "none") : null, () => {
+    setCity(day?.city ?? "");
+  });
 
   function handleSave() {
     if (!day) return;

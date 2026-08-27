@@ -7,18 +7,18 @@ export function VerifyScreen() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setSession } = useAuth();
-  const [status, setStatus] = useState<"verifying" | "ok" | "error">("verifying");
-  const [errorMessage, setErrorMessage] = useState("");
-
   const token = searchParams.get("token");
   const nextFromQuery = searchParams.get("next");
 
+  // A missing token is knowable at render — no need to mount, then set an error
+  // state a frame later.
+  const [status, setStatus] = useState<"verifying" | "ok" | "error">(
+    token ? "verifying" : "error"
+  );
+  const [errorMessage, setErrorMessage] = useState(token ? "" : "Missing token");
+
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setErrorMessage("Missing token");
-      return;
-    }
+    if (!token) return;
     (async () => {
       try {
         const res = await authApi.verify(token);

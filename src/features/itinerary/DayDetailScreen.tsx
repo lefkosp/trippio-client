@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, Plus, PackageOpen, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -100,11 +101,11 @@ export function DayDetailScreen() {
   // The route doesn't remount when flipping to a neighbouring day (same
   // element, just a new :dayId param), so any sheet left open would keep
   // showing an event from the day we just navigated away from.
-  useEffect(() => {
+  useResetOnChange(dayId, () => {
     setSheetOpen(false);
     setSelectedEvent(null);
     setAddSheetOpen(false);
-  }, [dayId]);
+  });
 
   const handleEventClick = (event: TripEvent) => {
     setSelectedEvent(event);

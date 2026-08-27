@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import {
   Sheet,
   SheetContent,
@@ -41,7 +42,7 @@ export function EditEventProposalSheet({ event, open, onOpenChange }: EditEventP
 
   // Seed from the event being edited only when the sheet opens, so it
   // doesn't clobber in-progress edits on unrelated re-renders.
-  useEffect(() => {
+  useResetOnChange(open ? (event?._id ?? null) : null, () => {
     if (!open || !event) return;
     setTitle(event.title ?? "");
     setDayId(event.dayId ?? "");
@@ -50,7 +51,7 @@ export function EditEventProposalSheet({ event, open, onOpenChange }: EditEventP
     setType(event.type ?? "sight");
     setNotes(event.notes ?? "");
     setApplyMode("immediate");
-  }, [open, event]);
+  });
 
   const isSaving = createProposal.isPending || approveProposal.isPending;
 

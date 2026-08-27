@@ -56,7 +56,7 @@ function loadOrSeed(): StoreData {
   return seed;
 }
 
-let data = loadOrSeed();
+const data = loadOrSeed();
 
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

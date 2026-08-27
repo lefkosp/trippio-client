@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,9 @@ import { AccessManagementSheet } from "./AccessManagementSheet";
 
 export function AccessScreen() {
   const navigate = useNavigate();
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  useEffect(() => {
-    setSheetOpen(true);
-  }, []);
+  // This route exists only to present the sheet, so it starts open rather than
+  // opening itself in an effect a frame later.
+  const [sheetOpen, setSheetOpen] = useState(true);
 
   function handleSheetOpenChange(open: boolean) {
     setSheetOpen(open);

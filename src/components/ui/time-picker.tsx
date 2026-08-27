@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import { Clock } from "lucide-react";
 import {
   Sheet,
@@ -98,13 +99,13 @@ export function TimePicker({
   });
 
   // Sync internal state when value changes externally
-  useEffect(() => {
+  useResetOnChange(value, () => {
     if (value) {
       const [h, m] = value.split(":").map(Number);
       setHour(h);
       setMinute(Math.round(m / 5) * 5);
     }
-  }, [value]);
+  });
 
   const handleConfirm = useCallback(() => {
     onChange(`${pad(hour)}:${pad(minute)}`);

@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, type ReactNode } from "react";
 import type { Trip } from "@/shared/types";
 
 export interface TripSwitcherContextValue {
@@ -7,7 +7,7 @@ export interface TripSwitcherContextValue {
   setSelectedTripId: (id: string) => void;
 }
 
-export const TripSwitcherContext = createContext<TripSwitcherContextValue | null>(null);
+const TripSwitcherContext = createContext<TripSwitcherContextValue | null>(null);
 
 export function TripSwitcherProvider({
   trips,
@@ -32,10 +32,4 @@ export function TripSwitcherProvider({
   );
 }
 
-export function useTripSwitcher() {
-  const ctx = useContext(TripSwitcherContext);
-  if (!ctx) {
-    throw new Error("useTripSwitcher must be used within TripSwitcherProvider");
-  }
-  return ctx;
-}
+export { TripSwitcherContext };

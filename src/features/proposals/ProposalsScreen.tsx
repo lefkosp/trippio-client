@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Lightbulb,
@@ -606,15 +606,16 @@ function ConvertProposalSheet({
   const [suggestion, setSuggestion] = useState<ScheduleSuggestion | null>(null);
   const [replaceConflict, setReplaceConflict] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setDayId(proposal?.suggestedDayId ?? "");
-      setStartTime("");
-      setEndTime("");
-      setSuggestion(null);
-      setReplaceConflict(false);
-    }
-  }, [open, proposal]);
+  // Reset the form when the sheet opens, or when it reopens for a different
+  // proposal. Adjusted during render rather than in an effect: an effect commits
+  // the stale values first and re-renders immediately after, which is the
+  // cascading render React warns about. `reset` is hoisted, hence usable here.
+  const formKey = open ? (proposal?._id ?? "none") : null;
+  const [lastFormKey, setLastFormKey] = useState(formKey);
+  if (formKey !== lastFormKey) {
+    setLastFormKey(formKey);
+    if (formKey) reset();
+  }
 
   function reset() {
     setDayId(proposal?.suggestedDayId ?? "");
@@ -825,12 +826,16 @@ function PromoteToPlaceSheet({
   const [address, setAddress] = useState("");
   const [name, setName] = useState("");
 
-  useEffect(() => {
-    if (open) {
-      setAddress("");
-      setName(proposal?.title ?? "");
-    }
-  }, [open, proposal]);
+  // Reset the form when the sheet opens, or when it reopens for a different
+  // proposal. Adjusted during render rather than in an effect: an effect commits
+  // the stale values first and re-renders immediately after, which is the
+  // cascading render React warns about. `reset` is hoisted, hence usable here.
+  const formKey = open ? (proposal?._id ?? "none") : null;
+  const [lastFormKey, setLastFormKey] = useState(formKey);
+  if (formKey !== lastFormKey) {
+    setLastFormKey(formKey);
+    if (formKey) reset();
+  }
 
   function reset() {
     setAddress("");

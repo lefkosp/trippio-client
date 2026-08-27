@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useResetOnChange } from "@/shared/hooks/useResetOnChange";
 import { useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -303,9 +304,9 @@ function AssignToDaySheet({
   const [dayId, setDayId] = useState("");
   const createEvent = useCreateEvent(dayId);
 
-  useEffect(() => {
+  useResetOnChange(open, () => {
     if (open) setDayId("");
-  }, [open]);
+  });
 
   function handleAssign() {
     if (!place || !dayId) return;
@@ -574,7 +575,7 @@ function AddPlaceSheet({
 
   // Seed the form from the place being edited only when the sheet opens,
   // so it doesn't clobber in-progress edits on unrelated re-renders.
-  useEffect(() => {
+  useResetOnChange(open ? (editingPlace?._id ?? "new") : null, () => {
     if (!open) return;
     // Clear on both branches below — otherwise suggestions from a previous
     // place leak into the next sheet that opens.
@@ -597,7 +598,7 @@ function AddPlaceSheet({
     } else {
       reset();
     }
-  }, [open, editingPlace]);
+  });
 
   function handleLookup() {
     if (!name.trim()) return;
