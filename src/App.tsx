@@ -9,6 +9,7 @@ import { AuthProvider } from "@/auth/AuthProvider";
 import { AppShell } from "@/app/layout/AppShell";
 import { LoginScreen } from "@/features/auth/LoginScreen";
 import { VerifyScreen } from "@/features/auth/VerifyScreen";
+import { DemoOpenScreen } from "@/features/auth/DemoOpenScreen";
 import { TodayScreen } from "@/features/today/TodayScreen";
 import { ItineraryScreen } from "@/features/itinerary/ItineraryScreen";
 import { DayDetailScreen } from "@/features/itinerary/DayDetailScreen";
@@ -99,6 +100,7 @@ function App() {
             <Route path="/login" element={<LoginScreen />} />
             <Route path="/auth/verify" element={<VerifyScreen />} />
             <Route path="/share/:token" element={<ShareOpenScreen />} />
+            <Route path="/demo" element={<DemoOpenScreen />} />
             <Route element={<AppShell />}>
               <Route path="/today" element={<TodayScreen />} />
               <Route path="/itinerary" element={<ItineraryScreen />} />

@@ -336,6 +336,8 @@ export const authApi = {
     }),
   verify: (token: string): Promise<VerifyResponse> =>
     request<VerifyResponse>(`/auth/verify?token=${encodeURIComponent(token)}`),
+  demoLogin: (): Promise<VerifyResponse> =>
+    request<VerifyResponse>("/auth/demo", { method: "POST" }),
   refresh: (): Promise<RefreshResponse> =>
     request<RefreshResponse>("/auth/refresh", { method: "POST" }),
   logout: (): Promise<{ ok: boolean }> =>
