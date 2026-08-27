@@ -265,18 +265,24 @@ function ProposalCard({
         <div className="flex flex-col gap-3">
           {/* Vote counts + initials */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-              <ThumbsUp className="h-3.5 w-3.5" />
-              {yesVotes}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
-              <HelpCircle className="h-3.5 w-3.5" />
-              {maybeVotes}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-red-400 font-medium">
-              <ThumbsDown className="h-3.5 w-3.5" />
-              {noVotes}
-            </span>
+            {/* min-w-8 and gap-2 mirror the w-8 vote buttons below, so each count
+                sits directly over the button it belongs to. Counts run to a single
+                digit for a group this size; a wider one would push the row out of
+                register rather than clip. */}
+            <div className="flex items-center gap-2">
+              <span className="min-w-8 flex items-center justify-center gap-1 text-xs text-emerald-400 font-medium">
+                <ThumbsUp className="h-3.5 w-3.5" />
+                {yesVotes}
+              </span>
+              <span className="min-w-8 flex items-center justify-center gap-1 text-xs text-amber-400 font-medium">
+                <HelpCircle className="h-3.5 w-3.5" />
+                {maybeVotes}
+              </span>
+              <span className="min-w-8 flex items-center justify-center gap-1 text-xs text-red-400 font-medium">
+                <ThumbsDown className="h-3.5 w-3.5" />
+                {noVotes}
+              </span>
+            </div>
             {proposal.votes.length > 0 && (
               <div className="flex items-center gap-1">
                 {proposal.votes.slice(0, 3).map((v, i) => (
