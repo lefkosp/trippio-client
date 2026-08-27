@@ -17,7 +17,15 @@ export function AppShell() {
   const navigate = useNavigate();
   const { user, share, isReadOnly, isLoading: authLoading, isOffline } = useAuth();
   const isShareOnly = !user && !!share;
-  const { data: trips, isLoading: tripsLoading, error: tripsError } = useTrips(!isShareOnly);
+  // Gated on authLoading because `user` is seeded synchronously from the cached
+  // identity while the access token only arrives after the /auth/refresh round-trip.
+  // Without the gate this fires on mount with no Authorization header, 401s, and the
+  // shell falls through to "No trips yet" for a session that is perfectly valid — the
+  // refresh lands a moment later but nothing refetches, so a reload looked signed out.
+  // authLoading also clears on the offline path, so the cached-trip render still works.
+  const { data: trips, isLoading: tripsLoading, error: tripsError } = useTrips(
+    !isShareOnly && !authLoading
+  );
   const { data: sharedTrip, isLoading: sharedTripLoading, error: sharedTripError } = useTrip(
     share?.tripId ?? ""
   );
