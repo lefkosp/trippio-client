@@ -133,7 +133,7 @@ function ProposalCard({
 
   return (
     <Card>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 space-y-4">
         {/* Header row */}
         <div className="flex items-start gap-3">
           {proposal.imageUrl ? (
@@ -258,10 +258,13 @@ function ProposalCard({
 
         <Separator className="bg-border" />
 
-        {/* Vote summary + actions */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Vote summary + actions. Deliberately a column: when these shared a
+            wrapping row, a proposal with no votes let the actions fit alongside,
+            which squeezed the flex-1 counts group to its 36px minimum and stacked
+            the three counters vertically — so the first card never matched the rest. */}
+        <div className="flex flex-col gap-3">
           {/* Vote counts + initials */}
-          <div className="flex items-center gap-3 flex-1 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
               <ThumbsUp className="h-3.5 w-3.5" />
               {yesVotes}
@@ -312,7 +315,7 @@ function ProposalCard({
 
           {/* Actions */}
           {!isReadOnly && proposal.status === "open" && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => handleVote("yes")}
                 disabled={isActioning}
@@ -349,7 +352,7 @@ function ProposalCard({
               >
                 <ThumbsDown className="h-3.5 w-3.5" />
               </button>
-              <div className="w-px h-5 bg-border mx-0.5" />
+              <div className="w-px h-5 bg-border mx-1" />
               <button
                 onClick={handleApprove}
                 disabled={isActioning}
@@ -374,7 +377,7 @@ function ProposalCard({
               goes through convert since it's swapping an existing event,
               not creating a new one. */}
           {!isReadOnly && proposal.status === "approved" && proposal.type !== "edit" && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => onPromote(proposal)}
                 className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-[11px] font-medium bg-elev-2 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all press-scale"
